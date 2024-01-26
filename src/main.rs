@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use std::fs::File;
 
-use sqlite_starter_rust::db_header::DBHeader;
+use sqlite_starter_rust::{db_header::DBHeader, page_header::PageHeader};
 
 fn main() -> Result<()> {
     // Parse arguments
@@ -17,8 +17,12 @@ fn main() -> Result<()> {
     match command.as_str() {
         ".dbinfo" => {
             let mut file = File::open(&args[1])?;
+
             let db_header = DBHeader::new(&mut file);
+            let page_header = PageHeader::new(&mut file);
+
             println!("database page size: {}", db_header.page_size);
+            println!("number of tables: {}", page_header.cell_cnt);
         }
         _ => bail!("Missing or invalid command passed: {}", command),
     }
