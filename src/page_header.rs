@@ -1,6 +1,4 @@
 use std::fmt::Debug;
-use std::fs::File;
-use std::io::Read;
 
 use crate::from_be_bytes::from_be_bytes;
 
@@ -15,11 +13,7 @@ pub struct PageHeader {
 }
 
 impl PageHeader {
-    pub fn new(file: &mut File) -> Self {
-        let mut header = [0; 12];
-        file.read_exact(&mut header).expect("read header");
-        let window = &mut &header[..];
-
+    pub fn new(window: &mut &[u8]) -> Self {
         let mut page_header = Self {
             page_type: from_be_bytes(window),
             freeblock_start: from_be_bytes(window),
