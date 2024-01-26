@@ -4,5 +4,6 @@ pub mod from_be_bytes;
 pub mod page;
 pub mod page_header;
 pub mod record;
+pub mod sqlite_schema;
 pub mod value;
 pub mod varint;

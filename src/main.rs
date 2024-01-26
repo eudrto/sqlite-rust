@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 
-use sqlite_starter_rust::database::Database;
+use sqlite_starter_rust::{database::Database, sqlite_schema::SQLiteObjectType};
 
 fn main() -> Result<()> {
     // Parse arguments
@@ -19,6 +19,24 @@ fn main() -> Result<()> {
         ".dbinfo" => {
             println!("database page size: {}", db.header.page_size);
             println!("number of tables: {}", db.read_page(1).header.cell_cnt);
+        }
+        ".tables" => {
+            let tables = db
+                .load_sqlite_schema_table()
+                .sqlite_objects
+                .into_iter()
+                .filter(|sqlite_object| {
+                    if let SQLiteObjectType::Table = sqlite_object.object_type {
+                        true
+                    } else {
+                        false
+                    }
+                })
+                .map(|sqlite_object| sqlite_object.name)
+                .reduce(|acc, e| acc + " " + &e)
+                .unwrap();
+
+            println!("{tables}");
         }
         _ => bail!("Missing or invalid command passed: {}", command),
     }
