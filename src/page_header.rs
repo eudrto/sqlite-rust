@@ -2,6 +2,8 @@ use std::fmt::Debug;
 use std::fs::File;
 use std::io::Read;
 
+use crate::from_be_bytes::from_be_bytes;
+
 #[derive(Debug)]
 pub struct PageHeader {
     pub page_type: u8,
@@ -14,70 +16,24 @@ pub struct PageHeader {
 
 impl PageHeader {
     pub fn new(file: &mut File) -> Self {
-        let mut header = [0; 8];
+        let mut header = [0; 12];
         file.read_exact(&mut header).expect("read header");
+        let window = &mut &header[..];
 
         let mut page_header = Self {
-            page_type: Self::parse_page_type(&header),
-            freeblock_start: Self::parse_freeblock_start(&header),
-            cell_cnt: Self::parse_cell_cnt(&header),
-            cell_content_area_start: Self::parse_cell_content_area_start(&header),
-            fragmented_free_bytes_cnt: Self::parse_fragmented_free_bytes_cnt(&header),
+            page_type: from_be_bytes(window),
+            freeblock_start: from_be_bytes(window),
+            cell_cnt: from_be_bytes(window),
+            cell_content_area_start: from_be_bytes(window),
+            fragmented_free_bytes_cnt: from_be_bytes(window),
             right_most_ptr: None,
         };
 
         if page_header.is_interior() {
-            let mut ptr = [0; 4];
-            file.read_exact(&mut ptr).expect("read header");
-            page_header.right_most_ptr = Some(u32::from_be_bytes(ptr));
+            page_header.right_most_ptr = Some(from_be_bytes(window));
         }
 
         page_header
-    }
-
-    fn parse_page_type(header: &[u8; 8]) -> u8 {
-        const OFFSET: usize = 0;
-        const SIZE: usize = 1;
-
-        let s = &header[OFFSET..OFFSET + SIZE];
-        let arr: [u8; SIZE] = s.try_into().expect("convert slice to array");
-        u8::from_be_bytes(arr)
-    }
-
-    fn parse_freeblock_start(header: &[u8; 8]) -> u16 {
-        const OFFSET: usize = 1;
-        const SIZE: usize = 2;
-
-        let s = &header[OFFSET..OFFSET + SIZE];
-        let arr: [u8; SIZE] = s.try_into().expect("convert slice to array");
-        u16::from_be_bytes(arr)
-    }
-
-    fn parse_cell_cnt(header: &[u8; 8]) -> u16 {
-        const OFFSET: usize = 3;
-        const SIZE: usize = 2;
-
-        let s = &header[OFFSET..OFFSET + SIZE];
-        let arr: [u8; SIZE] = s.try_into().expect("convert slice to array");
-        u16::from_be_bytes(arr)
-    }
-
-    fn parse_cell_content_area_start(header: &[u8; 8]) -> u16 {
-        const OFFSET: usize = 5;
-        const SIZE: usize = 2;
-
-        let s = &header[OFFSET..OFFSET + SIZE];
-        let arr: [u8; SIZE] = s.try_into().expect("convert slice to array");
-        u16::from_be_bytes(arr)
-    }
-
-    fn parse_fragmented_free_bytes_cnt(header: &[u8; 8]) -> u8 {
-        const OFFSET: usize = 7;
-        const SIZE: usize = 1;
-
-        let s = &header[OFFSET..OFFSET + SIZE];
-        let arr: [u8; SIZE] = s.try_into().expect("convert slice to array");
-        u8::from_be_bytes(arr)
     }
 
     fn is_interior(&self) -> bool {
