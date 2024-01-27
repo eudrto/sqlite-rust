@@ -37,4 +37,14 @@ impl Database {
 
         SQLiteSchema::new(records)
     }
+
+    pub fn load_root_page(&mut self, name: &str) -> Result<Page, &str> {
+        let sqlite_schema = self.load_sqlite_schema_table();
+        let sqlite_object = sqlite_schema.get_sqlite_object(name);
+        let Some(sqlite_object) = sqlite_object else {
+            return Err("table not found");
+        };
+
+        Ok(self.read_page(sqlite_object.rootpage as u32))
+    }
 }

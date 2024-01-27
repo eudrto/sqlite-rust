@@ -68,4 +68,10 @@ impl SQLiteSchema {
 
         Self { sqlite_objects }
     }
+
+    pub fn get_sqlite_object(&self, name: &str) -> Option<&SQLiteObject> {
+        self.sqlite_objects
+            .iter()
+            .find(|sqlite_object| sqlite_object.name == name)
+    }
 }
