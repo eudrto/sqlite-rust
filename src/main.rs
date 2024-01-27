@@ -1,6 +1,8 @@
+use std::process::exit;
+
 use anyhow::{bail, Result};
 
-use sqlite_starter_rust::{database::Database, sqlite_schema::SQLiteObjectType};
+use sqlite_starter_rust::{database::Database, sql::SelectStmt, sqlite_schema::SQLiteObjectType};
 
 fn main() -> Result<()> {
     // Parse arguments
@@ -38,7 +40,19 @@ fn main() -> Result<()> {
 
             println!("{tables}");
         }
-        _ => bail!("Missing or invalid command passed: {}", command),
+        _ => {
+            let stmt = SelectStmt::parse(command);
+
+            let root_page = match db.load_root_page(&stmt.from) {
+                Ok(root_page) => root_page,
+                Err(msg) => {
+                    println!("{}", msg);
+                    exit(1);
+                }
+            };
+
+            println!("{}", root_page.header.cell_cnt)
+        }
     }
 
     Ok(())
