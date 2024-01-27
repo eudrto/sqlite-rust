@@ -28,13 +28,13 @@ impl<'a> CreateTableStmt<'a> {
 
 #[derive(Debug)]
 pub struct SelectStmt<'a> {
-    pub select: &'a str,
+    pub select: Vec<&'a str>,
     pub from: &'a str,
 }
 
 impl<'a> SelectStmt<'a> {
     pub fn parse(sql: &'a str) -> Self {
-        fn select(sql: &str) -> &str {
+        fn select(sql: &str) -> Vec<&str> {
             let pattern = r"SELECT(.*?)FROM";
             let re = RegexBuilder::new(pattern)
                 .case_insensitive(true)
@@ -43,7 +43,12 @@ impl<'a> SelectStmt<'a> {
                 .unwrap();
 
             let caps = re.captures(sql).unwrap();
-            caps.get(1).unwrap().as_str().trim()
+            caps.get(1)
+                .unwrap()
+                .as_str()
+                .split(",")
+                .map(|s| s.trim())
+                .collect()
         }
 
         fn from(sql: &str) -> &str {
@@ -93,11 +98,8 @@ mod tests {
 
         let stmt = SelectStmt::parse(sql);
 
-        let select = "COUNT(*)";
-        let from = "apples";
-
-        assert_eq!(stmt.select, select);
-        assert_eq!(stmt.from, from);
+        assert_eq!(stmt.select[0], "COUNT(*)");
+        assert_eq!(stmt.from, "apples");
     }
 
     #[test]
@@ -107,10 +109,19 @@ mod tests {
 
         let stmt = SelectStmt::parse(sql);
 
-        let select = "COUNT(*)";
-        let from = "apples";
+        assert_eq!(stmt.select[0], "COUNT(*)");
+        assert_eq!(stmt.from, "apples");
+    }
 
-        assert_eq!(stmt.select, select);
-        assert_eq!(stmt.from, from);
+    #[test]
+    fn select_stmt_multi() {
+        let sql = "SELECT name, color
+        FROM apples";
+
+        let stmt = SelectStmt::parse(sql);
+
+        assert_eq!(stmt.select[0], "name");
+        assert_eq!(stmt.select[1], "color");
+        assert_eq!(stmt.from, "apples");
     }
 }

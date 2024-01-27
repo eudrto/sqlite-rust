@@ -37,10 +37,10 @@ fn main() -> Result<()> {
                 }
             };
 
-            if stmt.select.to_lowercase() == "count(*)" {
+            if stmt.select.len() == 1 && stmt.select[0].to_lowercase() == "count(*)" {
                 println!("{}", table.size())
             } else {
-                println!("{}", table.select(&[stmt.select]));
+                println!("{}", table.select(&stmt.select));
             }
         }
     }
