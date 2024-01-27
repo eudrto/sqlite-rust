@@ -1,4 +1,5 @@
 use crate::record::Record;
+use crate::sql::CreateTableStmt;
 use crate::value::Value;
 
 #[derive(Debug)]
@@ -14,6 +15,13 @@ pub struct SQLiteObject {
     pub tbl_name: String,
     pub rootpage: u64,
     pub sql: String,
+}
+
+impl SQLiteObject {
+    pub fn get_columns(&self) -> Vec<&str> {
+        let stmt = CreateTableStmt::parse(&self.sql);
+        stmt.columns
+    }
 }
 
 pub struct SQLiteSchema {
