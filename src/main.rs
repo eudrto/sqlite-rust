@@ -2,7 +2,7 @@ use std::process::exit;
 
 use anyhow::{bail, Result};
 
-use sqlite_starter_rust::{database::Database, sql::SelectStmt, sqlite_schema::SQLiteObjectType};
+use sqlite_starter_rust::{database::Database, sql::SelectStmt};
 
 fn main() -> Result<()> {
     // Parse arguments
@@ -23,21 +23,7 @@ fn main() -> Result<()> {
             println!("number of tables: {}", db.read_page(1).header.cell_cnt);
         }
         ".tables" => {
-            let tables = db
-                .load_sqlite_schema_table()
-                .sqlite_objects
-                .into_iter()
-                .filter(|sqlite_object| {
-                    if let SQLiteObjectType::Table = sqlite_object.object_type {
-                        true
-                    } else {
-                        false
-                    }
-                })
-                .map(|sqlite_object| sqlite_object.name)
-                .reduce(|acc, e| acc + " " + &e)
-                .unwrap();
-
+            let tables = db.load_sqlite_schema_table().dot_tables();
             println!("{tables}");
         }
         _ => {
