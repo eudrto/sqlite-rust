@@ -29,15 +29,18 @@ fn main() -> Result<()> {
         _ => {
             let stmt = SelectStmt::parse(command);
 
-            let root_page = match db.load_root_page(&stmt.from) {
-                Ok(root_page) => root_page,
+            let table = match db.load_table(&stmt.from) {
+                Ok(table) => table,
                 Err(msg) => {
                     println!("{}", msg);
                     exit(1);
                 }
             };
 
-            println!("{}", root_page.header.cell_cnt)
+            if stmt.select.to_lowercase() == "count(*)" {
+                println!("{}", table.size())
+            } else {
+            }
         }
     }
 

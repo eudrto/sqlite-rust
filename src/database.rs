@@ -2,8 +2,8 @@ use std::fs::File;
 
 use crate::db_header::DBHeader;
 use crate::page::Page;
-use crate::record::Record;
 use crate::sqlite_schema::SQLiteSchema;
+use crate::table::Table;
 
 #[derive(Debug)]
 pub struct Database {
@@ -28,23 +28,20 @@ impl Database {
 
     pub fn load_sqlite_schema_table(&mut self) -> SQLiteSchema {
         let page = self.read_page(1);
-
-        let mut records = vec![];
-        for cell_ptr in page.cell_ptr_arr {
-            let bytes = &page.bytes[cell_ptr as usize..];
-            records.push(Record::new(bytes));
-        }
-
-        SQLiteSchema::new(records)
+        SQLiteSchema::new(page.read_records())
     }
 
-    pub fn load_root_page(&mut self, name: &str) -> Result<Page, &str> {
+    pub fn load_table(&mut self, name: &str) -> Result<Table, &str> {
         let sqlite_schema = self.load_sqlite_schema_table();
         let sqlite_object = sqlite_schema.get_sqlite_object(name);
         let Some(sqlite_object) = sqlite_object else {
             return Err("table not found");
         };
 
-        Ok(self.read_page(sqlite_object.rootpage as u32))
+        let columns = sqlite_object.get_columns();
+
+        let root_page = self.read_page(sqlite_object.rootpage as u32);
+        let records = root_page.read_records();
+        Ok(Table::new(&columns, records))
     }
 }

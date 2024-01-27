@@ -6,5 +6,6 @@ pub mod page_header;
 pub mod record;
 pub mod sql;
 pub mod sqlite_schema;
+pub mod table;
 pub mod value;
 pub mod varint;

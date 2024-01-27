@@ -4,7 +4,7 @@ use std::{
     io::{Read, Seek},
 };
 
-use crate::page_header::PageHeader;
+use crate::{page_header::PageHeader, record::Record};
 
 fn read_cell_ptr_arr(bytes: &[u8], cell_cnt: usize) -> Vec<u16> {
     bytes[..2 * cell_cnt]
@@ -38,6 +38,16 @@ impl Page {
             cell_ptr_arr,
             bytes,
         }
+    }
+
+    pub fn read_records(&self) -> Vec<Record> {
+        self.cell_ptr_arr
+            .iter()
+            .map(|cell_ptr| {
+                let bytes = &self.bytes[*cell_ptr as usize..];
+                Record::new(bytes)
+            })
+            .collect()
     }
 }
 

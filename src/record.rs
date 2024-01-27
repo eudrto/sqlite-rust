@@ -47,4 +47,14 @@ impl Record {
             columns: values,
         }
     }
+
+    pub fn select(&self, positions: &[usize]) -> Self {
+        Self {
+            rowid: self.rowid,
+            columns: positions
+                .iter()
+                .map(|position| self.columns[*position].clone())
+                .collect(),
+        }
+    }
 }
