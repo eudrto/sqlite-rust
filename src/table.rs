@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::record::Record;
 
 pub struct Table {
@@ -43,5 +45,18 @@ impl Table {
         self.col_names
             .iter()
             .position(|col_name| col_name == column)
+    }
+}
+
+impl Display for Table {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(
+            &self
+                .records
+                .iter()
+                .map(|record| format!("{}", record))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
     }
 }

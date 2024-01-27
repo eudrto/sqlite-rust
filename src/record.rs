@@ -1,3 +1,6 @@
+use std::fmt::Display;
+
+use itertools::Itertools;
 use nom::Offset;
 
 use crate::value::Value;
@@ -56,5 +59,17 @@ impl Record {
                 .map(|position| self.columns[*position].clone())
                 .collect(),
         }
+    }
+}
+
+impl Display for Record {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(
+            &self
+                .columns
+                .iter()
+                .map(|value| format!("{}", value))
+                .join("|"),
+        )
     }
 }

@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 #[derive(Clone, Debug)]
 pub enum Value {
     Null,
@@ -42,5 +44,17 @@ impl Value {
             13 => Value::Text(String::from_utf8(Vec::from(value)).unwrap()),
             _ => panic!(),
         }
+    }
+}
+
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&match self {
+            Self::Null => String::from("null"),
+            Self::Integer(i) => i.to_string(),
+            Self::Real(r) => r.to_string(),
+            Self::Text(text) => text.clone(),
+            Self::Blob(blob) => format!("{:x?}", blob),
+        })
     }
 }

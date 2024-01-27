@@ -40,6 +40,7 @@ fn main() -> Result<()> {
             if stmt.select.to_lowercase() == "count(*)" {
                 println!("{}", table.size())
             } else {
+                println!("{}", table.select(&[stmt.select]));
             }
         }
     }
