@@ -1,10 +1,10 @@
 mod bytes;
 pub mod database;
 mod dbinfo;
-pub mod record;
+mod record;
 pub mod sql;
 mod sqlite_file;
 pub mod sqlite_schema;
 mod sqlite_storage;
 pub mod table;
-pub mod value;
+mod value;

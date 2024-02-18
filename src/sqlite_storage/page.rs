@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use super::page_header::PageHeader;
+use super::{page_header::PageHeader, record::parse_record};
 use crate::record::Record;
 
 pub struct Page {
@@ -32,7 +32,7 @@ impl Page {
             .iter()
             .map(|cell_ptr| {
                 let bytes = &self.bytes[*cell_ptr as usize..];
-                Record::new(bytes)
+                parse_record(bytes)
             })
             .collect()
     }

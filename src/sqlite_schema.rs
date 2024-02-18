@@ -33,7 +33,7 @@ impl SQLiteSchema {
         let sqlite_objects = records
             .into_iter()
             .map(|record| {
-                let mut records_it = record.columns.into_iter();
+                let mut records_it = record.values.into_iter();
 
                 let object_type = match records_it.next().unwrap() {
                     Value::Text(object_type) => match object_type.as_ref() {

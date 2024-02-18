@@ -1,62 +1,26 @@
 use std::fmt::Display;
 
 use itertools::Itertools;
-use nom::Offset;
 
-use crate::bytes::varint::{parse_varint, parse_varints};
 use crate::value::Value;
 
 #[derive(Debug)]
 pub struct Record {
-    pub rowid: u64,
-    pub columns: Vec<Value>,
+    rowid: u64,
+    pub values: Vec<Value>,
 }
 
 impl Record {
-    pub fn new(mut bytes: &[u8]) -> Self {
-        let window = &mut bytes;
-
-        // Table B-Tree Leaf Cell
-        let payload_size = parse_varint(window);
-        let rowid = parse_varint(window);
-
-        let payload_start = *window;
-
-        // Header
-        let header_size = parse_varint(window);
-        let bytes_read = payload_start.offset(window);
-        let serial_types = parse_varints(&window[..header_size as usize - bytes_read]);
-
-        // Values
-        let window = &mut &payload_start[header_size as usize..];
-        let mut values = vec![];
-        for serial_type in &serial_types {
-            values.push(match serial_type {
-                0 => Value::Null,
-                0..=6 => Value::new_integer(*serial_type, window),
-                7 => Value::new_real(window),
-                8 => Value::Integer(0),
-                9 => Value::Integer(1),
-                10 | 11 => panic!(),
-                _ => Value::new_text_or_blob(*serial_type, window),
-            });
-        }
-
-        let offset = payload_start.offset(window);
-        assert_eq!(offset as u64, payload_size);
-
-        Self {
-            rowid,
-            columns: values,
-        }
+    pub fn new(rowid: u64, values: Vec<Value>) -> Self {
+        Self { rowid, values }
     }
 
     pub fn select(&self, positions: &[usize]) -> Self {
         Self {
             rowid: self.rowid,
-            columns: positions
+            values: positions
                 .iter()
-                .map(|position| self.columns[*position].clone())
+                .map(|position| self.values[*position].clone())
                 .collect(),
         }
     }
@@ -66,7 +30,7 @@ impl Display for Record {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(
             &self
-                .columns
+                .values
                 .iter()
                 .map(|value| format!("{}", value))
                 .join("|"),
