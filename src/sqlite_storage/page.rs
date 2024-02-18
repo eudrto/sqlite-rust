@@ -27,7 +27,7 @@ impl Page {
         }
     }
 
-    pub fn read_records(&self) -> Vec<Record> {
+    pub fn get_records(&self) -> Vec<Record> {
         self.cell_ptr_arr
             .iter()
             .map(|cell_ptr| {

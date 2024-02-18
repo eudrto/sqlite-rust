@@ -2,7 +2,6 @@ use std::fs::File;
 
 use crate::sql::SelectStmt;
 use crate::sqlite_file::SQLiteFile;
-use crate::sqlite_schema::SQLiteSchema;
 use crate::sqlite_storage::SQLiteStorage;
 use crate::table::Table;
 
@@ -28,18 +27,12 @@ impl Database {
     }
 
     fn exec_dbinfo(&mut self) {
-        println!(
-            "database page size: {}",
-            self.storage.get_db_header().page_size
-        );
-        println!(
-            "number of tables: {}",
-            self.storage.get_page(1).page_header.cell_cnt
-        );
+        let dbinfo = self.storage.get_dbinfo();
+        println!("{}", dbinfo);
     }
 
     fn exec_tables(&mut self) {
-        let tables = self.load_sqlite_schema_table().dot_tables();
+        let tables = self.storage.get_schema().dot_tables();
         println!("{tables}");
     }
 
@@ -61,22 +54,12 @@ impl Database {
         }
     }
 
-    fn load_sqlite_schema_table(&mut self) -> SQLiteSchema {
-        let page = self.storage.get_page(1);
-        SQLiteSchema::new(page.read_records())
-    }
+    fn load_table(&mut self, name: &str) -> Result<Table, String> {
+        let records = self.storage.get_table(name)?;
 
-    fn load_table(&mut self, name: &str) -> Result<Table, &str> {
-        let sqlite_schema = self.load_sqlite_schema_table();
-        let sqlite_object = sqlite_schema.get_sqlite_object(name);
-        let Some(sqlite_object) = sqlite_object else {
-            return Err("table not found");
-        };
-
+        let sqlite_schema = self.storage.get_schema();
+        let sqlite_object = sqlite_schema.get_sqlite_object(name).unwrap();
         let columns = sqlite_object.get_columns();
-
-        let root_page = self.storage.get_page(sqlite_object.rootpage as u32);
-        let records = root_page.read_records();
         Ok(Table::new(&columns, records))
     }
 }

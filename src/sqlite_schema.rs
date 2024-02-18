@@ -13,7 +13,7 @@ pub struct SQLiteObject {
     pub object_type: SQLiteObjectType,
     pub name: String,
     pub tbl_name: String,
-    pub rootpage: u64,
+    pub rootpage: u32,
     pub sql: String,
 }
 
@@ -68,7 +68,7 @@ impl SQLiteSchema {
                     object_type,
                     name,
                     tbl_name,
-                    rootpage,
+                    rootpage: rootpage as u32,
                     sql,
                 }
             })
