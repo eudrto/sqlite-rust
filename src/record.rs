@@ -3,8 +3,8 @@ use std::fmt::Display;
 use itertools::Itertools;
 use nom::Offset;
 
+use crate::bytes::varint::{parse_varint, parse_varints};
 use crate::value::Value;
-use crate::varint::{parse_varint, parse_varints};
 
 #[derive(Debug)]
 pub struct Record {

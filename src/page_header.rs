@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::from_be_bytes::from_be_bytes;
+use crate::bytes::from_be_bytes::from_be_bytes;
 
 #[derive(Debug)]
 pub struct PageHeader {

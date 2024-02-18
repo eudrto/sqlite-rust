@@ -1,6 +1,6 @@
 use std::{fs::File, io::Read};
 
-use crate::from_be_bytes::from_be_bytes;
+use crate::bytes::from_be_bytes::from_be_bytes;
 
 #[derive(Debug)]
 pub struct DBHeader {
