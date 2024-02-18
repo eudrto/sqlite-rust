@@ -29,7 +29,9 @@ impl SQLiteStorage {
     }
 
     pub fn get_schema(&mut self) -> SQLiteSchema {
-        SQLiteSchema::new(self.get_page(1).get_records())
+        let records = self.get_page(1).get_records();
+        let sqlite_objects = records.into_iter().map(|r| r.into()).collect();
+        SQLiteSchema::new(sqlite_objects)
     }
 
     pub fn get_table(&mut self, name: &str) -> Result<Vec<Record>, String> {

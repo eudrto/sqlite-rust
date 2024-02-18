@@ -59,7 +59,7 @@ impl Database {
 
         let sqlite_schema = self.storage.get_schema();
         let sqlite_object = sqlite_schema.get_sqlite_object(name).unwrap();
-        let columns = sqlite_object.get_columns();
-        Ok(Table::new(&columns, records))
+        let column_names = sqlite_object.get_col_names();
+        Ok(Table::new(&column_names, records))
     }
 }
