@@ -1,22 +1,22 @@
 use std::fs::File;
 
-use crate::db_header::DBHeader;
-use crate::page::Page;
 use crate::sql::SelectStmt;
 use crate::sqlite_file::SQLiteFile;
 use crate::sqlite_schema::SQLiteSchema;
+use crate::sqlite_storage::SQLiteStorage;
 use crate::table::Table;
 
 #[derive(Debug)]
 pub struct Database {
-    sqlite_file: SQLiteFile,
+    storage: SQLiteStorage,
 }
 
 impl Database {
     pub fn new(file_path: &str) -> Self {
         let file = File::open(file_path).unwrap();
         let sqlite_file = SQLiteFile::new(file);
-        Self { sqlite_file }
+        let storage = SQLiteStorage::new(sqlite_file);
+        Self { storage }
     }
 
     pub fn exec(&mut self, cmd: &str) {
@@ -28,8 +28,14 @@ impl Database {
     }
 
     fn exec_dbinfo(&mut self) {
-        println!("database page size: {}", self.get_db_header().page_size);
-        println!("number of tables: {}", self.read_page(1).header.cell_cnt);
+        println!(
+            "database page size: {}",
+            self.storage.get_db_header().page_size
+        );
+        println!(
+            "number of tables: {}",
+            self.storage.get_page(1).page_header.cell_cnt
+        );
     }
 
     fn exec_tables(&mut self) {
@@ -55,18 +61,8 @@ impl Database {
         }
     }
 
-    fn get_db_header(&mut self) -> DBHeader {
-        DBHeader::new(self.sqlite_file.load_db_header())
-    }
-
-    fn read_page(&mut self, page_no: u32) -> Page {
-        let page_size = self.get_db_header().page_size as usize;
-        let page_bytes = self.sqlite_file.load_page(page_no, page_size);
-        Page::new(page_bytes, page_no)
-    }
-
     fn load_sqlite_schema_table(&mut self) -> SQLiteSchema {
-        let page = self.read_page(1);
+        let page = self.storage.get_page(1);
         SQLiteSchema::new(page.read_records())
     }
 
@@ -79,7 +75,7 @@ impl Database {
 
         let columns = sqlite_object.get_columns();
 
-        let root_page = self.read_page(sqlite_object.rootpage as u32);
+        let root_page = self.storage.get_page(sqlite_object.rootpage as u32);
         let records = root_page.read_records();
         Ok(Table::new(&columns, records))
     }

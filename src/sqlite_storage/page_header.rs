@@ -13,7 +13,7 @@ pub struct PageHeader {
 }
 
 impl PageHeader {
-    pub fn new(window: &mut &[u8]) -> Self {
+    pub fn parse(window: &mut &[u8]) -> Self {
         let mut page_header = Self {
             page_type: from_be_bytes(window),
             freeblock_start: from_be_bytes(window),
