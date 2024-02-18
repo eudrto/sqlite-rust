@@ -15,11 +15,10 @@ impl SQLiteSchema {
             .find(|sqlite_object| sqlite_object.name == name)
     }
 
-    pub fn dot_tables(&self) -> String {
+    pub fn get_table_names(&self) -> impl Iterator<Item = &str> {
         self.sqlite_objects
             .iter()
             .filter(|sqlite_object| matches!(sqlite_object.object_type, SQLiteObjectType::Table))
-            .map(|sqlite_object| &sqlite_object.name)
-            .fold(String::new(), |acc, e| acc + " " + &e)
+            .map(|sqlite_object| &sqlite_object.name[..])
     }
 }

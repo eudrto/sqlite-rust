@@ -32,7 +32,9 @@ impl Database {
     }
 
     fn exec_tables(&mut self) {
-        let tables = self.storage.get_schema().dot_tables();
+        let sqlite_schema = self.storage.get_schema();
+        let tables = sqlite_schema.get_table_names();
+        let tables = tables.fold(String::new(), |acc, e| acc + " " + &e);
         println!("{tables}");
     }
 
