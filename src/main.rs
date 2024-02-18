@@ -1,11 +1,8 @@
-use std::process::exit;
-
 use anyhow::{bail, Result};
 
-use sqlite_starter_rust::{database::Database, sql::SelectStmt};
+use sqlite_starter_rust::database::Database;
 
 fn main() -> Result<()> {
-    // Parse arguments
     let args = std::env::args().collect::<Vec<_>>();
     match args.len() {
         0 | 1 => bail!("Missing <database path> and <command>"),
@@ -13,37 +10,11 @@ fn main() -> Result<()> {
         _ => {}
     }
 
-    let mut db = Database::new(&args[1]);
+    let file_path = &args[1];
+    let cmd = &args[2];
 
-    // Parse command and act accordingly
-    let command = &args[2];
-    match command.as_str() {
-        ".dbinfo" => {
-            println!("database page size: {}", db.get_db_header().page_size);
-            println!("number of tables: {}", db.read_page(1).header.cell_cnt);
-        }
-        ".tables" => {
-            let tables = db.load_sqlite_schema_table().dot_tables();
-            println!("{tables}");
-        }
-        _ => {
-            let stmt = SelectStmt::parse(command);
-
-            let table = match db.load_table(&stmt.from) {
-                Ok(table) => table,
-                Err(msg) => {
-                    println!("{}", msg);
-                    exit(1);
-                }
-            };
-
-            if stmt.select.len() == 1 && stmt.select[0].to_lowercase() == "count(*)" {
-                println!("{}", table.size())
-            } else {
-                println!("{}", table.select(&stmt.select));
-            }
-        }
-    }
+    let mut db = Database::new(&file_path);
+    db.exec(cmd);
 
     Ok(())
 }
