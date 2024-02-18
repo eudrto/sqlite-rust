@@ -1,8 +1,4 @@
-use std::{
-    fmt::Debug,
-    fs::File,
-    io::{Read, Seek},
-};
+use std::fmt::Debug;
 
 use crate::{page_header::PageHeader, record::Record};
 
@@ -20,15 +16,9 @@ pub struct Page {
 }
 
 impl Page {
-    pub fn new(file: &mut File, number: usize, page_size: usize) -> Self {
-        let page_start = (number - 1) * page_size;
-        file.seek(std::io::SeekFrom::Start(page_start as u64))
-            .unwrap();
-
-        let mut bytes = vec![0; page_size];
-        file.read_exact(&mut bytes).unwrap();
-
-        let window = &mut if number == 1 { &bytes[100..] } else { &bytes };
+    pub fn new(bytes: Vec<u8>, page_no: u32) -> Self {
+        let start_offset = if page_no == 1 { 100 } else { 0 };
+        let window = &mut &bytes[start_offset..];
         let header = PageHeader::new(window);
 
         let cell_ptr_arr = read_cell_ptr_arr(window, header.cell_cnt as usize);

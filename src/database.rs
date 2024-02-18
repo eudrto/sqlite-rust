@@ -2,28 +2,30 @@ use std::fs::File;
 
 use crate::db_header::DBHeader;
 use crate::page::Page;
+use crate::sqlite_file::SQLiteFile;
 use crate::sqlite_schema::SQLiteSchema;
 use crate::table::Table;
 
 #[derive(Debug)]
 pub struct Database {
-    pub file: File,
-    pub header: DBHeader,
+    sqlite_file: SQLiteFile,
 }
 
 impl Database {
     pub fn new(file_path: &str) -> Self {
-        let mut file = File::open(file_path).unwrap();
-        let header = DBHeader::new(&mut file);
-        Self { file, header }
+        let file = File::open(file_path).unwrap();
+        let sqlite_file = SQLiteFile::new(file);
+        Self { sqlite_file }
     }
 
-    pub fn read_page(&mut self, number: u32) -> Page {
-        Page::new(
-            &mut self.file,
-            number as usize,
-            self.header.page_size as usize,
-        )
+    pub fn get_db_header(&mut self) -> DBHeader {
+        DBHeader::new(self.sqlite_file.load_db_header())
+    }
+
+    pub fn read_page(&mut self, page_no: u32) -> Page {
+        let page_size = self.get_db_header().page_size as usize;
+        let page_bytes = self.sqlite_file.load_page(page_no, page_size);
+        Page::new(page_bytes, page_no)
     }
 
     pub fn load_sqlite_schema_table(&mut self) -> SQLiteSchema {

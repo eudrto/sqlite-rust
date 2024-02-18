@@ -19,7 +19,7 @@ fn main() -> Result<()> {
     let command = &args[2];
     match command.as_str() {
         ".dbinfo" => {
-            println!("database page size: {}", db.header.page_size);
+            println!("database page size: {}", db.get_db_header().page_size);
             println!("number of tables: {}", db.read_page(1).header.cell_cnt);
         }
         ".tables" => {

@@ -5,6 +5,7 @@ pub mod page;
 pub mod page_header;
 pub mod record;
 pub mod sql;
+mod sqlite_file;
 pub mod sqlite_schema;
 pub mod table;
 pub mod value;
