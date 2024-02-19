@@ -1,5 +1,6 @@
 use super::{db_header::DBHeader, page::Page};
-use crate::{dbinfo::DBInfo, record::Record, sqlite_file::SQLiteFile, sqlite_schema::SQLiteSchema};
+use crate::engine::{DBInfo, Record, SQLiteSchema};
+use crate::sqlite_file::SQLiteFile;
 
 #[derive(Debug)]
 pub struct SQLiteStorage {

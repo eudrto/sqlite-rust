@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use itertools::Itertools;
 
-use crate::value::Value;
+use super::Value;
 
 #[derive(Debug)]
 pub struct Record {

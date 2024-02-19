@@ -1,9 +1,9 @@
 use std::fs::File;
 
+use super::Table;
 use crate::sql::SelectStmt;
 use crate::sqlite_file::SQLiteFile;
 use crate::sqlite_storage::SQLiteStorage;
-use crate::table::Table;
 
 #[derive(Debug)]
 pub struct Database {

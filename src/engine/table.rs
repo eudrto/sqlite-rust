@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::record::Record;
+use super::Record;
 
 pub struct Table {
     col_names: Vec<String>,

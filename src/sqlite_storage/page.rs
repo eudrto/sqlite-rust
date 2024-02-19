@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use super::{page_header::PageHeader, record::parse_record};
-use crate::record::Record;
+use crate::engine::Record;
 
 pub struct Page {
     pub page_header: PageHeader,

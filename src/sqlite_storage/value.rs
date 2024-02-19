@@ -1,4 +1,4 @@
-use crate::value::Value;
+use crate::engine::Value;
 
 pub fn parse_integer(serial_type: u64, window: &mut &[u8]) -> Value {
     let size = match serial_type {
@@ -35,4 +35,3 @@ pub fn parse_text_or_blob(serial_type: u64, window: &mut &[u8]) -> Value {
         _ => panic!(),
     }
 }
-

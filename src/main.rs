@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 
-use sqlite_starter_rust::database::Database;
+use sqlite_starter_rust::engine::Database;
 
 fn main() -> Result<()> {
     let args = std::env::args().collect::<Vec<_>>();

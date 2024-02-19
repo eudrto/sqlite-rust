@@ -1,10 +1,6 @@
 use std::convert::From;
 
-use crate::{
-    record::Record,
-    sqlite_object::{SQLiteObject, SQLiteObjectType},
-    value::Value,
-};
+use crate::engine::{Record, SQLiteObject, SQLiteObjectType, Value};
 
 impl From<Record> for SQLiteObject {
     fn from(record: Record) -> Self {

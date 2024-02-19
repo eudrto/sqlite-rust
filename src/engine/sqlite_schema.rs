@@ -1,4 +1,4 @@
-use crate::sqlite_object::{SQLiteObject, SQLiteObjectType};
+use super::{SQLiteObject, SQLiteObjectType};
 
 pub struct SQLiteSchema {
     pub sqlite_objects: Vec<SQLiteObject>,

@@ -2,7 +2,7 @@ use nom::Offset;
 
 use super::value::{parse_integer, parse_real, parse_text_or_blob};
 use crate::bytes::varint::{parse_varint, parse_varints};
-use crate::{record::Record, value::Value};
+use crate::engine::{Record, Value};
 
 pub fn parse_record(mut bytes: &[u8]) -> Record {
     let window = &mut bytes;
