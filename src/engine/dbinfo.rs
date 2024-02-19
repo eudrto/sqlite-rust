@@ -2,8 +2,8 @@ use std::fmt::Display;
 
 #[derive(Debug)]
 pub struct DBInfo {
-    page_size: u16,
-    table_cnt: u16,
+    pub page_size: u16,
+    pub table_cnt: u16,
 }
 
 impl DBInfo {

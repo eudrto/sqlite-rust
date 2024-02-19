@@ -43,3 +43,63 @@ impl SQLiteStorage {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::{fs::File, path::PathBuf};
+
+    use crate::sqlite_file::SQLiteFile;
+
+    use super::SQLiteStorage;
+
+    fn construct_sqlite_storage(db_file_rel_path: &str) -> SQLiteStorage {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let file = File::open(root.join(db_file_rel_path)).unwrap();
+        let sqlite_file = SQLiteFile::new(file);
+        SQLiteStorage::new(sqlite_file)
+    }
+
+    #[test]
+    fn get_dbinfo() {
+        let mut sqlite_storage = construct_sqlite_storage("sample.db");
+        let dbinfo = sqlite_storage.get_dbinfo();
+
+        assert_eq!(dbinfo.page_size, 4096);
+        assert_eq!(dbinfo.table_cnt, 3);
+    }
+
+    #[test]
+    fn get_schema() {
+        let mut sqlite_storage = construct_sqlite_storage("sample.db");
+        let sqlite_schema = sqlite_storage.get_schema();
+
+        let apples = sqlite_schema.get_sqlite_object("apples").unwrap();
+        assert_eq!(apples.get_col_names(), vec!["id", "name", "color"]);
+
+        let oranges = sqlite_schema.get_sqlite_object("oranges").unwrap();
+        assert_eq!(oranges.get_col_names(), vec!["id", "name", "description"]);
+    }
+
+    #[test]
+    fn get_tables_ok() {
+        let mut sqlite_storage = construct_sqlite_storage("sample.db");
+
+        let apples = sqlite_storage.get_table("apples").unwrap();
+        assert_eq!(apples.len(), 4);
+        for record in &apples {
+            assert_eq!(record.values.len(), 3);
+        }
+
+        let oranges = sqlite_storage.get_table("oranges").unwrap();
+        assert_eq!(oranges.len(), 6);
+        for record in &oranges {
+            assert_eq!(record.values.len(), 3);
+        }
+    }
+
+    #[test]
+    fn get_tables_err() {
+        let mut sqlite_storage = construct_sqlite_storage("sample.db");
+        assert!(matches!(sqlite_storage.get_table("grapes"), Err(_)));
+    }
+}
