@@ -4,7 +4,7 @@ use super::Record;
 
 pub struct Table {
     col_names: Vec<String>,
-    records: Vec<Record>,
+    pub records: Vec<Record>,
 }
 
 impl Table {
