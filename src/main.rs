@@ -1,6 +1,6 @@
 use anyhow::{bail, Result};
 
-use sqlite_starter_rust::engine::Database;
+use sqlite_starter_rust::engine::Engine;
 
 fn main() -> Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
@@ -13,7 +13,7 @@ fn main() -> Result<()> {
     let file_path = &args[1];
     let cmd = &args[2];
 
-    let mut db = Database::new(&file_path);
+    let mut db = Engine::new(&file_path);
     db.exec(cmd);
 
     Ok(())

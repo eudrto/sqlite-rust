@@ -6,11 +6,11 @@ use crate::sqlite_file::SQLiteFile;
 use crate::sqlite_storage::SQLiteStorage;
 
 #[derive(Debug)]
-pub struct Database {
+pub struct Engine {
     storage: SQLiteStorage,
 }
 
-impl Database {
+impl Engine {
     pub fn new(file_path: &str) -> Self {
         let file = File::open(file_path).unwrap();
         let sqlite_file = SQLiteFile::new(file);
