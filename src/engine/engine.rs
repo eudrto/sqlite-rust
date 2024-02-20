@@ -1,21 +1,14 @@
-use std::fs::File;
-
-use super::{DBInfo, Table, Value};
+use super::{DBInfo, Storage, Table, Value};
 use crate::engine::Record;
 use crate::sql::SelectStmt;
-use crate::sqlite_file::SQLiteFile;
-use crate::sqlite_storage::SQLiteStorage;
 
 #[derive(Debug)]
-pub struct Engine {
-    storage: SQLiteStorage,
+pub struct Engine<S: Storage> {
+    storage: S,
 }
 
-impl Engine {
-    pub fn new(file_path: &str) -> Self {
-        let file = File::open(file_path).unwrap();
-        let sqlite_file = SQLiteFile::new(file);
-        let storage = SQLiteStorage::new(sqlite_file);
+impl<S: Storage> Engine<S> {
+    pub fn new(storage: S) -> Self {
         Self { storage }
     }
 
@@ -78,12 +71,12 @@ impl Engine {
 mod tests {
     use std::path::PathBuf;
 
-    use super::Engine;
+    use crate::engine::new_engine;
 
     #[test]
     fn exec_select() {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let mut engine = Engine::new(root.join("sample.db").to_str().unwrap());
+        let mut engine = new_engine(root.join("sample.db").to_str().unwrap());
         let sql = "SELECT name, color FROM apples";
 
         let table = engine.exec_sql(sql).unwrap();
@@ -106,7 +99,7 @@ mod tests {
     #[test]
     fn exec_select_count() {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        let mut engine = Engine::new(root.join("sample.db").to_str().unwrap());
+        let mut engine = new_engine(root.join("sample.db").to_str().unwrap());
         let sql = "SELECT COUNT(*) FROM apples";
 
         let table = engine.exec_sql(sql).unwrap();

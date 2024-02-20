@@ -1,5 +1,5 @@
 use super::{db_header::DBHeader, page::Page};
-use crate::engine::{DBInfo, Record, SQLiteSchema};
+use crate::engine::{DBInfo, Record, SQLiteSchema, Storage};
 use crate::sqlite_file::SQLiteFile;
 
 #[derive(Debug)]
@@ -21,21 +21,23 @@ impl SQLiteStorage {
         let page = self.sqlite_file.load_page(page_no, page_size);
         Page::parse(page, page_no)
     }
+}
 
-    pub fn get_dbinfo(&mut self) -> DBInfo {
+impl Storage for SQLiteStorage {
+    fn get_dbinfo(&mut self) -> DBInfo {
         let page_size = self.get_db_header().page_size;
         let sqlite_schema = self.get_schema();
         let table_cnt = sqlite_schema.sqlite_objects.len();
         DBInfo::new(page_size, table_cnt as u16)
     }
 
-    pub fn get_schema(&mut self) -> SQLiteSchema {
+    fn get_schema(&mut self) -> SQLiteSchema {
         let records = self.get_page(1).get_records();
         let sqlite_objects = records.into_iter().map(|r| r.into()).collect();
         SQLiteSchema::new(sqlite_objects)
     }
 
-    pub fn get_table(&mut self, name: &str) -> Result<Vec<Record>, String> {
+    fn get_table(&mut self, name: &str) -> Result<Vec<Record>, String> {
         if let Some(sqlite_object) = self.get_schema().get_sqlite_object(name) {
             Ok(self.get_page(sqlite_object.rootpage).get_records())
         } else {
@@ -48,7 +50,7 @@ impl SQLiteStorage {
 mod tests {
     use std::{fs::File, path::PathBuf};
 
-    use crate::sqlite_file::SQLiteFile;
+    use crate::{engine::Storage, sqlite_file::SQLiteFile};
 
     use super::SQLiteStorage;
 
