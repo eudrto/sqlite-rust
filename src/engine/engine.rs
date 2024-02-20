@@ -1,6 +1,6 @@
 use super::{DBInfo, Storage, Table, Value};
 use crate::engine::Record;
-use crate::sql::SelectStmt;
+use crate::sql::sql::SelectStmt;
 
 #[derive(Debug)]
 pub struct Engine<S: Storage> {
@@ -45,15 +45,15 @@ impl<S: Storage> Engine<S> {
 
     pub fn exec_sql(&mut self, sql: &str) -> Result<Table, String> {
         let stmt = SelectStmt::parse(sql);
-        let table = self.load_table(&stmt.from)?;
+        let table = self.load_table(&stmt.from_clause)?;
 
-        if stmt.select.len() == 1 && stmt.select[0].to_lowercase() == "count(*)" {
+        if stmt.select_clause.len() == 1 && stmt.select_clause[0].to_lowercase() == "count(*)" {
             Ok(Table::new(
                 &[],
                 vec![Record::new(0, vec![Value::Integer(table.size() as i64)])],
             ))
         } else {
-            Ok(table.select(&stmt.select))
+            Ok(table.select(&stmt.select_clause))
         }
     }
 

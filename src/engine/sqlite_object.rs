@@ -1,4 +1,4 @@
-use crate::sql::CreateTableStmt;
+use crate::sql::sql::CreateTableStmt;
 
 #[derive(Debug)]
 pub enum SQLiteObjectType {
