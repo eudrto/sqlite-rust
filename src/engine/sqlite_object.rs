@@ -16,6 +16,22 @@ pub struct SQLiteObject {
 }
 
 impl SQLiteObject {
+    pub fn new(
+        object_type: SQLiteObjectType,
+        name: &str,
+        tbl_name: &str,
+        rootpage: u32,
+        sql: &str,
+    ) -> Self {
+        Self {
+            object_type,
+            name: name.into(),
+            tbl_name: tbl_name.into(),
+            rootpage,
+            sql: sql.into(),
+        }
+    }
+
     pub fn get_col_names(&self) -> Vec<&str> {
         let stmt = CreateTableStmt::parse(&self.sql);
         stmt.columns

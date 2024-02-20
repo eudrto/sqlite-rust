@@ -31,11 +31,11 @@ impl<S: Storage> Engine<S> {
         }
     }
 
-    fn exec_dbinfo(&mut self) -> DBInfo {
+    pub fn exec_dbinfo(&mut self) -> DBInfo {
         self.storage.get_dbinfo()
     }
 
-    fn exec_tables(&mut self) -> Vec<String> {
+    pub fn exec_tables(&mut self) -> Vec<String> {
         let sqlite_schema = self.storage.get_schema();
         sqlite_schema
             .get_table_names()
@@ -43,7 +43,7 @@ impl<S: Storage> Engine<S> {
             .collect()
     }
 
-    fn exec_sql(&mut self, sql: &str) -> Result<Table, String> {
+    pub fn exec_sql(&mut self, sql: &str) -> Result<Table, String> {
         let stmt = SelectStmt::parse(sql);
         let table = self.load_table(&stmt.from)?;
 
