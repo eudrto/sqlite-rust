@@ -1,4 +1,5 @@
 use std::fmt::Display;
+use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub enum Value {
@@ -30,6 +31,51 @@ impl Value {
     }
     pub fn and(&self, rhs: &Value) -> Value {
         Value::from(self.into() && rhs.into())
+    }
+}
+
+impl<'a, 'b> Add<&'b Value> for &'a Value {
+    type Output = Value;
+    fn add(self, rhs: &'b Value) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(x), Value::Integer(y)) => Value::Integer(x + y),
+            (Value::Real(x), Value::Real(y)) => Value::Real(x + y),
+            (Value::Text(x), Value::Text(y)) => Value::Text(x.to_owned() + y),
+            _ => panic!(),
+        }
+    }
+}
+
+impl<'a, 'b> Sub<&'b Value> for &'a Value {
+    type Output = Value;
+    fn sub(self, rhs: &'b Value) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(x), Value::Integer(y)) => Value::Integer(x - y),
+            (Value::Real(x), Value::Real(y)) => Value::Real(x - y),
+            _ => panic!(),
+        }
+    }
+}
+
+impl<'a, 'b> Mul<&'b Value> for &'a Value {
+    type Output = Value;
+    fn mul(self, rhs: &'b Value) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(x), Value::Integer(y)) => Value::Integer(x * y),
+            (Value::Real(x), Value::Real(y)) => Value::Real(x * y),
+            _ => panic!(),
+        }
+    }
+}
+
+impl<'a, 'b> Div<&'b Value> for &'a Value {
+    type Output = Value;
+    fn div(self, rhs: &'b Value) -> Self::Output {
+        match (self, rhs) {
+            (Value::Integer(x), Value::Integer(y)) => Value::Integer(x * y),
+            (Value::Real(x), Value::Real(y)) => Value::Real(x * y),
+            _ => panic!(),
+        }
     }
 }
 

@@ -155,6 +155,24 @@ mod tests {
     }
 
     #[test]
+    fn exec_select_with_where_pass_3() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut engine = new_engine(root.join("sample.db").to_str().unwrap());
+        let sql = "SELECT name, color FROM apples WHERE color = 'Ye' + 'll' + 'ow'";
+
+        let table = engine.exec_sql(sql).unwrap();
+
+        let want = [("Golden Delicious", "Yellow")];
+        assert_eq!(table.size(), want.len());
+
+        for (record, want) in table.records.into_iter().zip(want) {
+            assert_eq!(record.values.len(), 2);
+            assert_eq!(record.values[0].to_string(), want.0);
+            assert_eq!(record.values[1].to_string(), want.1);
+        }
+    }
+
+    #[test]
     #[should_panic]
     fn exec_select_with_where_fail_1() {
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

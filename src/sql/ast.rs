@@ -8,6 +8,10 @@ pub enum BinOp {
     Lte, /* <= */
     Gt,  /* > */
     Gte, /* >= */
+    Add, /* + */
+    Sub, /* - */
+    Mul, /* * */
+    Div, /* / */
 }
 
 #[derive(Debug, PartialEq)]

@@ -1,3 +1,5 @@
+use std::ops::{Add, Div, Mul, Sub};
+
 use crate::engine::{Row, Value};
 
 use super::ast::{BinOp, Expr, Literal};
@@ -13,6 +15,10 @@ impl BinOp {
             BinOp::Lte => Value::from(l <= r),
             BinOp::Gt => Value::from(l > r),
             BinOp::Gte => Value::from(l >= r),
+            BinOp::Add => l.add(r),
+            BinOp::Sub => l.sub(r),
+            BinOp::Mul => l.mul(r),
+            BinOp::Div => l.div(r),
         }
     }
 }

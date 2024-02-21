@@ -23,6 +23,10 @@ parser! {
         rule tok_lte() -> &'input str = _ t:$"<=" {t}
         rule tok_gt() -> &'input str = _ t:$">" {t}
         rule tok_gte() -> &'input str = _ t:$">=" {t}
+        rule tok_add() -> &'input str = _ t:$"+" {t}
+        rule tok_sub() -> &'input str = _ t:$"-" {t}
+        rule tok_star() -> &'input str = _ t:$"*" {t}
+        rule tok_div() -> &'input str = _ t:$"/" {t}
 
         rule tok_integer() -> Literal
             = _ i:$(num()+) { Literal::Integer(i.parse().unwrap()) }
@@ -46,6 +50,12 @@ parser! {
             l:(@) tok_lte()  r:@ { Expr::Binary(BinOp::Lte, Box::new(l), Box::new(r))}
             l:(@) tok_gt()  r:@ { Expr::Binary(BinOp::Gt, Box::new(l), Box::new(r))}
             l:(@) tok_gte()  r:@ { Expr::Binary(BinOp::Gte, Box::new(l), Box::new(r))}
+            --
+            l:(@) tok_add() r:@ { Expr::Binary(BinOp::Add, Box::new(l), Box::new(r))}
+            l:(@) tok_sub() r:@ { Expr::Binary(BinOp::Sub, Box::new(l), Box::new(r))}
+            --
+            l:(@) tok_star() r:@ { Expr::Binary(BinOp::Mul, Box::new(l), Box::new(r))}
+            l:(@) tok_div() r:@ { Expr::Binary(BinOp::Div, Box::new(l), Box::new(r))}
             --
             i:tok_integer() { Expr::Literal(i)  }
             s:tok_string() { Expr::Literal(s) }
@@ -144,8 +154,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "ParseError")]
-    fn parser_fail_1() {
+    fn parser_pass_5() {
         let input = "1 + 2";
         parse_expr(input);
     }
