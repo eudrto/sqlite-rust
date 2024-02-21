@@ -15,6 +15,8 @@ parser! {
         rule alphanum_() -> &'input str = a:$(alphanum() / "_") { a }
 
         // token
+        rule tok_or() -> &'input str = _ t:$"OR" {t}
+        rule tok_and() -> &'input str = _ t:$"AND" {t}
         rule tok_eq() -> &'input str = _ t:$("==" / "=") {t}
         rule tok_neq() -> &'input str = _ t:$("<>" / "!=") {t}
         rule tok_lt() -> &'input str = _ t:$"<" {t}
@@ -33,6 +35,10 @@ parser! {
 
         // node
         pub rule expr() -> Expr = precedence!{
+            l:(@) tok_or()  r:@ { Expr::Binary(BinOp::Or, Box::new(l), Box::new(r))}
+            --
+            l:(@) tok_and() r:@ { Expr::Binary(BinOp::And, Box::new(l), Box::new(r))}
+            --
             l:(@) tok_eq()  r:@ { Expr::Binary(BinOp::Eq, Box::new(l), Box::new(r))}
             l:(@) tok_neq() r:@ { Expr::Binary(BinOp::Neq, Box::new(l), Box::new(r))}
             --
@@ -62,10 +68,10 @@ mod tests {
         let input = "x = 1";
         let got = parse_expr(input);
 
-        let want = Expr::Binary(
+        let want = Expr::new_binary(
             BinOp::Eq,
-            Box::new(Expr::Literal(Literal::Id(String::from("x")))),
-            Box::new(Expr::Literal(Literal::Integer(1))),
+            Expr::new_literal(Literal::new_id("x")),
+            Expr::new_literal(Literal::new_integer(1)),
         );
 
         assert_eq!(got, want);
@@ -76,10 +82,62 @@ mod tests {
         let input = "color = 'Yellow'";
         let got = parse_expr(input);
 
-        let want = Expr::Binary(
+        let want = Expr::new_binary(
             BinOp::Eq,
-            Box::new(Expr::Literal(Literal::Id(String::from("color")))),
-            Box::new(Expr::Literal(Literal::Text(String::from("Yellow")))),
+            Expr::new_literal(Literal::new_id("color")),
+            Expr::new_literal(Literal::new_text("Yellow")),
+        );
+
+        assert_eq!(got, want);
+    }
+
+    #[test]
+    fn parser_pass_3() {
+        let input = "low <= 0 OR high >= 1";
+        let got = parse_expr(input);
+
+        let want = Expr::new_binary(
+            BinOp::Or,
+            Expr::new_binary(
+                BinOp::Lte,
+                Expr::new_literal(Literal::new_id("low")),
+                Expr::new_literal(Literal::new_integer(0)),
+            ),
+            Expr::new_binary(
+                BinOp::Gte,
+                Expr::new_literal(Literal::new_id("high")),
+                Expr::new_literal(Literal::new_integer(1)),
+            ),
+        );
+
+        assert_eq!(got, want);
+    }
+
+    #[test]
+    fn parser_pass_4() {
+        let input = "1 >= val AND 2 <= val OR val == 0";
+        let got = parse_expr(input);
+
+        let want = Expr::new_binary(
+            BinOp::Or,
+            Expr::new_binary(
+                BinOp::And,
+                Expr::new_binary(
+                    BinOp::Gte,
+                    Expr::new_literal(Literal::new_integer(1)),
+                    Expr::new_literal(Literal::new_id("val")),
+                ),
+                Expr::new_binary(
+                    BinOp::Lte,
+                    Expr::new_literal(Literal::new_integer(2)),
+                    Expr::new_literal(Literal::new_id("val")),
+                ),
+            ),
+            Expr::new_binary(
+                BinOp::Eq,
+                Expr::new_literal(Literal::new_id("val")),
+                Expr::new_literal(Literal::new_integer(0)),
+            ),
         );
 
         assert_eq!(got, want);

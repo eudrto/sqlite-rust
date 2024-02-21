@@ -5,6 +5,8 @@ use super::ast::{BinOp, Expr, Literal};
 impl BinOp {
     fn eval(&self, l: &Value, r: &Value) -> Value {
         match self {
+            BinOp::Or => l.or(r),
+            BinOp::And => l.and(r),
             BinOp::Eq => Value::from(l == r),
             BinOp::Neq => Value::from(l != r),
             BinOp::Lt => Value::from(l < r),

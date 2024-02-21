@@ -24,6 +24,15 @@ impl From<&Value> for bool {
     }
 }
 
+impl Value {
+    pub fn or(&self, rhs: &Value) -> Value {
+        Value::from(self.into() || rhs.into())
+    }
+    pub fn and(&self, rhs: &Value) -> Value {
+        Value::from(self.into() && rhs.into())
+    }
+}
+
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&match self {
