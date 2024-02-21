@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, ops::Index};
 
 use itertools::Itertools;
 
@@ -23,6 +23,14 @@ impl Record {
                 .map(|position| self.values[*position].clone())
                 .collect(),
         }
+    }
+}
+
+impl Index<usize> for Record {
+    type Output = Value;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.values[index]
     }
 }
 

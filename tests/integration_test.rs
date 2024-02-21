@@ -89,3 +89,20 @@ fn exec_select_count() {
     let table = engine.exec_sql(sql).unwrap();
     assert_eq!(table.to_string(), "4");
 }
+
+#[test]
+fn exec_select_with_where() {
+    let mut engine = Engine::new(MockStorage);
+    let sql = "SELECT title, author, year_published FROM books WHERE genre = 'Dystopian'";
+
+    let table = engine.exec_sql(sql).unwrap();
+
+    let want = [("1984", "George Orwell", "1949")];
+    assert_eq!(table.size(), want.len());
+
+    for (record, want) in table.records.into_iter().zip(want) {
+        assert_eq!(record.values.len(), 3);
+        assert_eq!(record.values[0].to_string(), want.0);
+        assert_eq!(record.values[1].to_string(), want.1);
+    }
+}

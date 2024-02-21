@@ -1,9 +1,11 @@
 mod dbinfo;
 mod engine;
 mod record;
+mod row;
 mod sqlite_object;
 mod sqlite_schema;
 mod table;
+mod table_header;
 mod value;
 
 use std::fs::File;
@@ -11,9 +13,11 @@ use std::fs::File;
 pub use dbinfo::DBInfo;
 pub use engine::Engine;
 pub use record::Record;
+pub use row::Row;
 pub use sqlite_object::{SQLiteObject, SQLiteObjectType};
 pub use sqlite_schema::SQLiteSchema;
 pub use table::Table;
+pub use table_header::TableHeader;
 pub use value::Value;
 
 use crate::{sqlite_file::SQLiteFile, sqlite_storage::SQLiteStorage};

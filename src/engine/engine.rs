@@ -1,6 +1,6 @@
-use super::{DBInfo, Storage, Table, Value};
+use super::{DBInfo, Row, Storage, Table, TableHeader, Value};
 use crate::engine::Record;
-use crate::sql::sql::SelectStmt;
+use crate::sql::{Expr, SelectStmt};
 
 #[derive(Debug)]
 pub struct Engine<S: Storage> {
@@ -45,7 +45,7 @@ impl<S: Storage> Engine<S> {
 
     pub fn exec_sql(&mut self, sql: &str) -> Result<Table, String> {
         let stmt = SelectStmt::parse(sql);
-        let table = self.load_table(&stmt.from_clause)?;
+        let table = self.load_table(&stmt.from_clause, stmt.where_clause)?;
 
         if stmt.select_clause.len() == 1 && stmt.select_clause[0].to_lowercase() == "count(*)" {
             Ok(Table::new(
@@ -57,12 +57,24 @@ impl<S: Storage> Engine<S> {
         }
     }
 
-    fn load_table(&mut self, name: &str) -> Result<Table, String> {
-        let records = self.storage.get_table(name)?;
+    fn load_table(&mut self, name: &str, where_expr: Option<Expr>) -> Result<Table, String> {
+        let mut records = self.storage.get_table(name)?;
 
         let sqlite_schema = self.storage.get_schema();
         let sqlite_object = sqlite_schema.get_sqlite_object(name).unwrap();
         let column_names = sqlite_object.get_col_names();
+
+        let table_header = TableHeader::new(&column_names);
+
+        if let Some(where_expr) = where_expr {
+            records = records
+                .into_iter()
+                .map(|record| Row::new(&table_header, record))
+                .filter(|row| bool::from(&where_expr.eval(row)))
+                .map(|row| row.record)
+                .collect()
+        }
+
         Ok(Table::new(&column_names, records))
     }
 }
@@ -80,14 +92,14 @@ mod tests {
         let sql = "SELECT name, color FROM apples";
 
         let table = engine.exec_sql(sql).unwrap();
-        assert_eq!(table.size(), 4);
 
-        let want = vec![
+        let want = [
             ("Granny Smith", "Light Green"),
             ("Fuji", "Red"),
             ("Honeycrisp", "Blush Red"),
             ("Golden Delicious", "Yellow"),
         ];
+        assert_eq!(table.size(), want.len());
 
         for (record, want) in table.records.into_iter().zip(want) {
             assert_eq!(record.values.len(), 2);
@@ -104,5 +116,23 @@ mod tests {
 
         let table = engine.exec_sql(sql).unwrap();
         assert_eq!(table.to_string(), "4");
+    }
+
+    #[test]
+    fn exec_select_with_where() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut engine = new_engine(root.join("sample.db").to_str().unwrap());
+        let sql = "SELECT name, color FROM apples WHERE color = 'Yellow'";
+
+        let table = engine.exec_sql(sql).unwrap();
+
+        let want = [("Golden Delicious", "Yellow")];
+        assert_eq!(table.size(), want.len());
+
+        for (record, want) in table.records.into_iter().zip(want) {
+            assert_eq!(record.values.len(), 2);
+            assert_eq!(record.values[0].to_string(), want.0);
+            assert_eq!(record.values[1].to_string(), want.1);
+        }
     }
 }
