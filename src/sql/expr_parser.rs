@@ -15,6 +15,9 @@ parser! {
         rule alphanum_() -> &'input str = a:$(alphanum() / "_") { a }
 
         // token
+        rule tok_left_paren() -> &'input str = _ t:$"(" {t}
+        rule tok_right_paren() -> &'input str = _ t:$")" {t}
+
         rule tok_or() -> &'input str = _ t:$"OR" {t}
         rule tok_and() -> &'input str = _ t:$"AND" {t}
         rule tok_eq() -> &'input str = _ t:$("==" / "=") {t}
@@ -60,6 +63,7 @@ parser! {
             i:tok_integer() { Expr::Literal(i)  }
             s:tok_string() { Expr::Literal(s) }
             i:tok_id() { Expr::Literal(i) }
+            tok_left_paren() e:expr() tok_right_paren() { e }
         }
     }
 }
@@ -157,5 +161,65 @@ mod tests {
     fn parser_pass_5() {
         let input = "1 + 2";
         parse_expr(input);
+    }
+
+    #[test]
+    fn parser_pass_6() {
+        let input = "val != 0 AND val <= 1 OR val >= 2";
+        let got = parse_expr(input);
+
+        let want = Expr::new_binary(
+            BinOp::Or,
+            Expr::new_binary(
+                BinOp::And,
+                Expr::new_binary(
+                    BinOp::Neq,
+                    Expr::new_literal(Literal::new_id("val")),
+                    Expr::new_literal(Literal::new_integer(0)),
+                ),
+                Expr::new_binary(
+                    BinOp::Lte,
+                    Expr::new_literal(Literal::new_id("val")),
+                    Expr::new_literal(Literal::new_integer(1)),
+                ),
+            ),
+            Expr::new_binary(
+                BinOp::Gte,
+                Expr::new_literal(Literal::new_id("val")),
+                Expr::new_literal(Literal::new_integer(2)),
+            ),
+        );
+
+        assert_eq!(got, want);
+    }
+
+    #[test]
+    fn parser_pass_7() {
+        let input = "val != 0 AND ( val <= 1 OR val >= 2 )";
+        let got = parse_expr(input);
+
+        let want = Expr::new_binary(
+            BinOp::And,
+            Expr::new_binary(
+                BinOp::Neq,
+                Expr::new_literal(Literal::new_id("val")),
+                Expr::new_literal(Literal::new_integer(0)),
+            ),
+            Expr::new_binary(
+                BinOp::Or,
+                Expr::new_binary(
+                    BinOp::Lte,
+                    Expr::new_literal(Literal::new_id("val")),
+                    Expr::new_literal(Literal::new_integer(1)),
+                ),
+                Expr::new_binary(
+                    BinOp::Gte,
+                    Expr::new_literal(Literal::new_id("val")),
+                    Expr::new_literal(Literal::new_integer(2)),
+                ),
+            ),
+        );
+
+        assert_eq!(got, want);
     }
 }
