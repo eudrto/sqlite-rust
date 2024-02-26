@@ -1,9 +1,16 @@
-use super::ast::{BinOp, Expr, Literal};
+use super::{
+    ast::SelectStmt,
+    {BinOp, Expr, Literal},
+};
 
 use peg::parser;
 
 parser! {
     pub grammar parser() for str {
+        // --------------------
+        // lexical grammar
+        // --------------------
+
         // whitespace
         rule _ = [' ' | '\n' | '\t']*
 
@@ -17,6 +24,8 @@ parser! {
         // token
         rule tok_left_paren() -> &'input str = _ t:$"(" {t}
         rule tok_right_paren() -> &'input str = _ t:$")" {t}
+        rule tok_comma() -> &'input str = _ t:$"," {t}
+        rule tok_semi() -> &'input str = _ t:$";" {t}
 
         rule tok_or() -> &'input str = _ t:$"OR" {t}
         rule tok_and() -> &'input str = _ t:$"AND" {t}
@@ -40,7 +49,15 @@ parser! {
         rule tok_id() -> Literal
             = _ i:$(alpha_() alphanum_()*) { Literal::Id(i.into()) }
 
-        // node
+        // keyword
+        rule kw_select() = _ ("select" / "SELECT")
+        rule kw_from() = _ ("from" / "FROM")
+        rule kw_where() = _ ("where" / "WHERE")
+
+        // --------------------
+        // syntacitc grammar
+        // --------------------
+
         pub rule expr() -> Expr = precedence!{
             l:(@) tok_or()  r:@ { Expr::Binary(BinOp::Or, Box::new(l), Box::new(r))}
             --
@@ -65,15 +82,37 @@ parser! {
             i:tok_id() { Expr::Literal(i) }
             tok_left_paren() e:expr() tok_right_paren() { e }
         }
+
+        rule exprs() -> Vec<Expr>
+            = exprs:(expr() ** tok_comma()) { exprs }
+
+        rule select_clause() -> Vec<Expr>
+            = kw_select() _ ("count(*)" / "COUNT(*)") {vec![]} / kw_select() e:exprs() { e }
+
+        rule from_clause() -> &'input str
+            = kw_from() f:$tok_id() { f.trim() }
+
+        rule where_clause() -> Expr
+            = kw_where() w:expr() { w }
+
+        pub rule select_stmt() -> SelectStmt
+            = s:select_clause() f:from_clause() w:where_clause()? tok_semi()? _ { SelectStmt::new_select(s, f, w) }
     }
 }
 
+#[cfg(test)]
 pub fn parse_expr(sql: &str) -> Expr {
     parser::expr(sql).expect("syntax error")
 }
 
+pub fn parse_stmt(sql: &str) -> SelectStmt {
+    parser::select_stmt(sql).expect("syntax error")
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::sql::parser::parse_stmt;
+
     use super::super::ast::{BinOp, Expr, Literal};
     use super::parse_expr;
 
@@ -221,5 +260,69 @@ mod tests {
         );
 
         assert_eq!(got, want);
+    }
+
+    #[test]
+    fn select_stmt() {
+        let sql = "SELECT COUNT(*)
+        FROM apples";
+
+        let stmt = parse_stmt(sql);
+
+        assert!(stmt.select_clause.len() == 0);
+        assert_eq!(stmt.from_clause, "apples");
+    }
+
+    #[test]
+    fn select_stmt_semi() {
+        let sql = "SELECT COUNT(*)
+        FROM apples;";
+
+        let stmt = parse_stmt(sql);
+
+        assert!(stmt.select_clause.len() == 0);
+        assert_eq!(stmt.from_clause, "apples");
+    }
+
+    #[test]
+    fn select_stmt_multi() {
+        let sql = "SELECT name, color
+        FROM apples";
+
+        let stmt = parse_stmt(sql);
+
+        assert_eq!(
+            &stmt.select_clause,
+            &[
+                Expr::new_literal(Literal::new_id("name")),
+                Expr::new_literal(Literal::new_id("color"))
+            ]
+        );
+
+        assert_eq!(stmt.from_clause, "apples");
+    }
+
+    #[test]
+    fn select_stmt_where() {
+        let sql = "SELECT name, color FROM apples WHERE color = 'Yellow'";
+
+        let stmt = parse_stmt(sql);
+
+        assert_eq!(
+            &stmt.select_clause,
+            &[
+                Expr::new_literal(Literal::new_id("name")),
+                Expr::new_literal(Literal::new_id("color"))
+            ]
+        );
+        assert_eq!(stmt.from_clause, "apples");
+
+        let where_want = Expr::Binary(
+            BinOp::Eq,
+            Box::new(Expr::Literal(Literal::Id(String::from("color")))),
+            Box::new(Expr::Literal(Literal::Text(String::from("Yellow")))),
+        );
+
+        assert_eq!(stmt.where_clause.unwrap(), where_want);
     }
 }

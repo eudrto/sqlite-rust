@@ -1,7 +1,7 @@
 mod ast;
-mod expr_parser;
+mod parser;
 
 pub mod sql;
 
 pub use ast::{BinOp, Expr, Literal};
-pub use sql::SelectStmt;
+pub use parser::parse_stmt;

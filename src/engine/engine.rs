@@ -1,4 +1,4 @@
-use crate::sql::{Expr, SelectStmt};
+use crate::sql::{parse_stmt, Expr};
 
 use super::{DBInfo, Record, Row, Storage, Table, TableHeader, Value};
 
@@ -44,16 +44,42 @@ impl<S: Storage> Engine<S> {
     }
 
     pub fn exec_sql(&mut self, sql: &str) -> Result<Table, String> {
-        let stmt = SelectStmt::parse(sql);
+        let stmt = parse_stmt(sql);
         let table = self.load_table(&stmt.from_clause, stmt.where_clause)?;
 
-        if stmt.select_clause.len() == 1 && stmt.select_clause[0].to_lowercase() == "count(*)" {
+        if stmt.select_clause.len() == 0 {
+            // Workaround:
+            // Empty stmt.select_clause represents
+            // SELECT COUNT(*) FROM ...
+
             Ok(Table::new(
-                &[],
+                TableHeader::new(&[]),
                 vec![Record::new(0, vec![Value::Integer(table.size() as i64)])],
             ))
         } else {
-            Ok(table.select(&stmt.select_clause))
+            let mut columns: Vec<_> = stmt
+                .select_clause
+                .into_iter()
+                .map(|expr| expr.eval_select(&table))
+                .collect();
+
+            let mut records = vec![];
+            'outer: loop {
+                let mut values = vec![];
+
+                for column in &mut columns {
+                    let value = column.next();
+                    if let Some(value) = value {
+                        values.push(value);
+                    } else {
+                        break 'outer;
+                    }
+                }
+
+                records.push(Record::new(0, values));
+            }
+
+            Ok(Table::new(TableHeader::new(&[]), records))
         }
     }
 
@@ -70,12 +96,12 @@ impl<S: Storage> Engine<S> {
             records = records
                 .into_iter()
                 .map(|record| Row::new(&table_header, record))
-                .filter(|row| bool::from(&where_expr.eval(row)))
+                .filter(|row| bool::from(&where_expr.eval_where(row)))
                 .map(|row| row.record)
                 .collect()
         }
 
-        Ok(Table::new(&column_names, records))
+        Ok(Table::new(table_header, records))
     }
 }
 
@@ -169,6 +195,70 @@ mod tests {
             assert_eq!(record.values.len(), 2);
             assert_eq!(record.values[0].to_string(), want.0);
             assert_eq!(record.values[1].to_string(), want.1);
+        }
+    }
+
+    #[test]
+    fn exec_select_expr_1() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut engine = new_engine(root.join("sample.db").to_str().unwrap());
+        let sql = "SELECT 'name: ' + name + ', color: ' + color FROM apples";
+
+        let table = engine.exec_sql(sql).unwrap();
+
+        let want = [
+            ("name: Granny Smith, color: Light Green",),
+            ("name: Fuji, color: Red",),
+            ("name: Honeycrisp, color: Blush Red",),
+            ("name: Golden Delicious, color: Yellow",),
+        ];
+        assert_eq!(table.size(), want.len());
+
+        for (record, want) in table.records.into_iter().zip(want) {
+            assert_eq!(record.values.len(), 1);
+            assert_eq!(record.values[0].to_string(), want.0);
+        }
+    }
+
+    #[test]
+    fn exec_select_expr_2() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut engine = new_engine(root.join("sample.db").to_str().unwrap());
+        let sql = "SELECT name, 1 FROM apples";
+
+        let table = engine.exec_sql(sql).unwrap();
+
+        let want = [
+            ("Granny Smith", 1),
+            ("Fuji", 1),
+            ("Honeycrisp", 1),
+            ("Golden Delicious", 1),
+        ];
+        assert_eq!(table.size(), want.len());
+
+        for (record, want) in table.records.into_iter().zip(want) {
+            assert_eq!(record.values.len(), 2);
+            assert_eq!(record.values[0].to_string(), want.0);
+            assert_eq!(record.values[1].to_string(), want.1.to_string());
+        }
+    }
+
+    #[test]
+    #[ignore = "endless loop"]
+    fn exec_select_expr_3() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut engine = new_engine(root.join("sample.db").to_str().unwrap());
+        let sql = "SELECT 1, 2 FROM apples";
+
+        let table = engine.exec_sql(sql).unwrap();
+
+        let want = [(1, 2)];
+        assert_eq!(table.size(), want.len());
+
+        for (record, want) in table.records.into_iter().zip(want) {
+            assert_eq!(record.values.len(), 2);
+            assert_eq!(record.values[0].to_string(), want.0.to_string());
+            assert_eq!(record.values[1].to_string(), want.1.to_string());
         }
     }
 

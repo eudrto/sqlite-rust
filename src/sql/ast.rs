@@ -53,3 +53,24 @@ impl Expr {
         Expr::Literal(literal)
     }
 }
+
+#[derive(Debug)]
+pub struct SelectStmt {
+    pub select_clause: Vec<Expr>,
+    pub from_clause: String,
+    pub where_clause: Option<Expr>,
+}
+
+impl SelectStmt {
+    pub fn new_select(
+        select_clause: Vec<Expr>,
+        from_clause: &str,
+        where_clause: Option<Expr>,
+    ) -> Self {
+        Self {
+            select_clause,
+            from_clause: String::from(from_clause),
+            where_clause,
+        }
+    }
+}

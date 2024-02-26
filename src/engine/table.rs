@@ -1,50 +1,27 @@
 use std::fmt::Display;
 
-use super::Record;
+use super::{Record, TableHeader, Value};
 
 pub struct Table {
-    col_names: Vec<String>,
+    table_header: TableHeader,
     pub records: Vec<Record>,
 }
 
 impl Table {
-    pub fn new(columns: &[&str], records: Vec<Record>) -> Self {
+    pub fn new(table_header: TableHeader, records: Vec<Record>) -> Self {
         Self {
-            col_names: columns.iter().map(|column| String::from(*column)).collect(),
+            table_header,
             records,
         }
     }
 
-    pub fn select(self, columns: &[&str]) -> Self {
-        let positions = self.col_names_to_col_positions(columns);
-
-        Self {
-            col_names: columns.iter().map(|column| String::from(*column)).collect(),
-            records: self
-                .records
-                .into_iter()
-                .map(|record| record.select(&positions))
-                .collect(),
-        }
+    pub fn get(&self, column: &str) -> impl Iterator<Item = &Value> {
+        let idx = self.table_header[column];
+        self.records.iter().map(move |record| &record.values[idx])
     }
 
     pub fn size(&self) -> usize {
         self.records.len()
-    }
-
-    fn col_names_to_col_positions(&self, columns: &[&str]) -> Vec<usize> {
-        columns
-            .iter()
-            .map(|column| self.col_name_to_col_position(column))
-            // TODO Missing columns: hard error vs best effott
-            .filter_map(|name| name)
-            .collect()
-    }
-
-    fn col_name_to_col_position(&self, column: &str) -> Option<usize> {
-        self.col_names
-            .iter()
-            .position(|col_name| col_name == column)
     }
 }
 
