@@ -1,6 +1,6 @@
-use super::{DBInfo, Row, Storage, Table, TableHeader, Value};
-use crate::engine::Record;
 use crate::sql::{Expr, SelectStmt};
+
+use super::{DBInfo, Record, Row, Storage, Table, TableHeader, Value};
 
 #[derive(Debug)]
 pub struct Engine<S: Storage> {

@@ -1,5 +1,6 @@
 mod dbinfo;
 mod engine;
+mod interpreter;
 mod record;
 mod row;
 mod sqlite_object;

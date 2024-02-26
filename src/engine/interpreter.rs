@@ -1,8 +1,8 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-use crate::engine::{Row, Value};
+use crate::sql::{BinOp, Expr, Literal};
 
-use super::ast::{BinOp, Expr, Literal};
+use super::{Row, Value};
 
 impl BinOp {
     fn eval(&self, l: &Value, r: &Value) -> Value {
