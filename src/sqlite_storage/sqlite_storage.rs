@@ -96,10 +96,13 @@ mod tests {
         let sqlite_schema = sqlite_storage.get_schema();
 
         let apples = sqlite_schema.get_sqlite_object("apples").unwrap();
-        assert_eq!(apples.get_col_names(), vec!["id", "name", "color"]);
+        assert_eq!(apples.get_column_names(), vec!["id", "name", "color"]);
 
         let oranges = sqlite_schema.get_sqlite_object("oranges").unwrap();
-        assert_eq!(oranges.get_col_names(), vec!["id", "name", "description"]);
+        assert_eq!(
+            oranges.get_column_names(),
+            vec!["id", "name", "description"]
+        );
     }
 
     #[test]

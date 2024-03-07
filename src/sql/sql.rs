@@ -1,8 +1,14 @@
 use regex::RegexBuilder;
 
 #[derive(Debug)]
+pub struct ColumnDef<'a> {
+    pub column_name: &'a str,
+    pub type_name_and_column_constraint: &'a str,
+}
+
+#[derive(Debug)]
 pub struct CreateTableStmt<'a> {
-    pub columns: Vec<&'a str>,
+    pub column_defs: Vec<ColumnDef<'a>>,
 }
 
 impl<'a> CreateTableStmt<'a> {
@@ -15,14 +21,18 @@ impl<'a> CreateTableStmt<'a> {
         let caps = re.captures(sql).unwrap();
         let columns = caps.get(1).unwrap().as_str();
 
-        let column_names = columns
+        let column_defs = columns
             .split(",")
-            .map(|part| part.trim().split_once(" ").unwrap().0)
+            .map(|part| {
+                let (prefix, suffix) = part.trim().split_once(" ").unwrap();
+                ColumnDef {
+                    column_name: prefix,
+                    type_name_and_column_constraint: suffix,
+                }
+            })
             .collect();
 
-        Self {
-            columns: column_names,
-        }
+        Self { column_defs }
     }
 }
 
@@ -40,9 +50,14 @@ mod tests {
         )";
 
         let stmt = CreateTableStmt::parse(sql);
+        let column_names = stmt
+            .column_defs
+            .into_iter()
+            .map(|column_def| column_def.column_name);
 
         let want_arr = ["id", "name", "description"];
-        for (got, want) in stmt.columns.into_iter().zip(want_arr) {
+
+        for (got, want) in column_names.zip(want_arr) {
             assert_eq!(got, want);
         }
     }

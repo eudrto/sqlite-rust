@@ -9,7 +9,7 @@ pub fn parse_record(mut bytes: &[u8]) -> Record {
 
     // Table B-Tree Leaf Cell
     let payload_size = parse_varint(window);
-    let rowid = parse_varint(window);
+    let rowid = parse_varint(window) as i64;
 
     let payload_start = *window;
 

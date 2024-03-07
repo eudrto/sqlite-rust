@@ -1,4 +1,4 @@
-use crate::sql::sql::CreateTableStmt;
+use crate::sql::sql::{ColumnDef, CreateTableStmt};
 
 #[derive(Debug)]
 pub enum SQLiteObjectType {
@@ -32,8 +32,15 @@ impl SQLiteObject {
         }
     }
 
-    pub fn get_col_names(&self) -> Vec<&str> {
+    pub fn get_column_defs(&self) -> Vec<ColumnDef> {
         let stmt = CreateTableStmt::parse(&self.sql);
-        stmt.columns
+        stmt.column_defs
+    }
+
+    pub fn get_column_names(&self) -> Vec<&str> {
+        self.get_column_defs()
+            .into_iter()
+            .map(|column_def| column_def.column_name)
+            .collect()
     }
 }

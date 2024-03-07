@@ -88,9 +88,29 @@ impl<S: Storage> Engine<S> {
 
         let sqlite_schema = self.storage.get_schema();
         let sqlite_object = sqlite_schema.get_sqlite_object(name).unwrap();
-        let column_names = sqlite_object.get_col_names();
+        let column_defs = sqlite_object.get_column_defs();
 
-        let table_header = TableHeader::new(&column_names);
+        // Handle NULL value in INTEGER PRIMARY KEY (rowid) column:
+        // "When an SQL table includes an INTEGER PRIMARY KEY column (which aliases the rowid)
+        // then that column appears in the record as a NULL value.
+        // SQLite will always use the table b-tree key rather than the NULL value
+        // when referencing the INTEGER PRIMARY KEY column."
+        // https://www.sqlite.org/fileformat.html#representation_of_sql_tables
+        let rowid_column = column_defs.iter().position(|column_def| {
+            column_def
+                .type_name_and_column_constraint
+                .to_lowercase()
+                .contains("integer primary key")
+        });
+
+        if let Some(rowid_colum) = rowid_column {
+            for record in &mut records {
+                assert_eq!(record.values[rowid_colum], Value::Null);
+                record.values[rowid_colum] = Value::Integer(record.rowid);
+            }
+        }
+
+        let table_header = TableHeader::new(&sqlite_object.get_column_names());
 
         if let Some(where_expr) = where_expr {
             records = records
@@ -270,5 +290,30 @@ mod tests {
         let sql = "SELECT name FROM apples WHERE col == 'val'";
 
         engine.exec_sql(sql).unwrap();
+    }
+
+    #[test]
+    fn exec_select_with_where_pass_4() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut engine = new_engine(root.join("superheroes.db").to_str().unwrap());
+        let sql = "SELECT id, name FROM superheroes WHERE eye_color = 'Pink Eyes'";
+
+        let table = engine.exec_sql(sql).unwrap();
+
+        let want = [
+            (297, "Stealth (New Earth)"),
+            (790, "Tobias Whale (New Earth)"),
+            (1085, "Felicity (New Earth)"),
+            (2729, "Thrust (New Earth)"),
+            (3289, "Angora Lapin (New Earth)"),
+            (3913, "Matris Ater Clementia (New Earth)"),
+        ];
+        assert_eq!(table.size(), want.len());
+
+        for (record, want) in table.records.into_iter().zip(want) {
+            assert_eq!(record.values.len(), 2);
+            assert_eq!(record.values[0].to_string(), want.0.to_string());
+            assert_eq!(record.values[1].to_string(), want.1);
+        }
     }
 }

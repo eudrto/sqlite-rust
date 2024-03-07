@@ -6,12 +6,12 @@ use super::Value;
 
 #[derive(Debug)]
 pub struct Record {
-    rowid: u64,
+    pub rowid: i64,
     pub values: Vec<Value>,
 }
 
 impl Record {
-    pub fn new(rowid: u64, values: Vec<Value>) -> Self {
+    pub fn new(rowid: i64, values: Vec<Value>) -> Self {
         Self { rowid, values }
     }
 
