@@ -1,3 +1,4 @@
+use super::page_header::PageType;
 use super::{db_header::DBHeader, page::Page};
 use crate::engine::{DBInfo, Record, SQLiteSchema, Storage};
 use crate::sqlite_file::SQLiteFile;
@@ -21,6 +22,21 @@ impl SQLiteStorage {
         let page = self.sqlite_file.load_page(page_no, page_size);
         Page::parse(page, page_no)
     }
+
+    fn traverse(&mut self, page_no: u32) -> Vec<Record> {
+        let page = self.get_page(page_no);
+
+        match page.page_header.page_type {
+            PageType::Leaf => page.get_records(),
+            PageType::Interior => page
+                .get_children()
+                .into_iter()
+                .chain([page.page_header.right_most_ptr.unwrap()])
+                .map(|page_no| self.traverse(page_no))
+                .flatten()
+                .collect(),
+        }
+    }
 }
 
 impl Storage for SQLiteStorage {
@@ -38,11 +54,15 @@ impl Storage for SQLiteStorage {
     }
 
     fn get_table(&mut self, name: &str) -> Result<Vec<Record>, String> {
-        if let Some(sqlite_object) = self.get_schema().get_sqlite_object(name) {
-            Ok(self.get_page(sqlite_object.rootpage).get_records())
-        } else {
-            Err(format!("table '{}' not found", name))
+        let sqlite_schema = self.get_schema();
+        let sqlite_object = sqlite_schema.get_sqlite_object(name);
+        if sqlite_object.is_none() {
+            return Err(format!("table '{}' not found", name));
         }
+
+        let sqlite_object = sqlite_object.unwrap();
+        let records = self.traverse(sqlite_object.rootpage);
+        Ok(records)
     }
 }
 
@@ -83,7 +103,7 @@ mod tests {
     }
 
     #[test]
-    fn get_tables_ok() {
+    fn get_tables_sample_ok() {
         let mut sqlite_storage = construct_sqlite_storage("sample.db");
 
         let apples = sqlite_storage.get_table("apples").unwrap();
@@ -97,6 +117,14 @@ mod tests {
         for record in &oranges {
             assert_eq!(record.values.len(), 3);
         }
+    }
+
+    #[test]
+    fn get_tables_superheroes_ok() {
+        let mut sqlite_storage = construct_sqlite_storage("superheroes.db");
+
+        let apples = sqlite_storage.get_table("superheroes").unwrap();
+        assert_eq!(apples.len(), 6895);
     }
 
     #[test]

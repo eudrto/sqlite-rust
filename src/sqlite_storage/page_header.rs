@@ -3,8 +3,24 @@ use std::fmt::Debug;
 use crate::bytes::from_be_bytes::from_be_bytes;
 
 #[derive(Debug)]
+pub enum PageType {
+    Interior,
+    Leaf,
+}
+
+impl PageType {
+    fn new(flag: u8) -> PageType {
+        match flag {
+            5 => PageType::Interior,
+            13 => PageType::Leaf,
+            _ => panic!("internal error: page type: {}", flag),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct PageHeader {
-    pub page_type: u8,
+    pub page_type: PageType,
     pub freeblock_start: u16,
     pub cell_cnt: u16,
     pub cell_content_area_start: u16,
@@ -15,7 +31,7 @@ pub struct PageHeader {
 impl PageHeader {
     pub fn parse(window: &mut &[u8]) -> Self {
         let mut page_header = Self {
-            page_type: from_be_bytes(window),
+            page_type: PageType::new(from_be_bytes(window)),
             freeblock_start: from_be_bytes(window),
             cell_cnt: from_be_bytes(window),
             cell_content_area_start: from_be_bytes(window),
@@ -31,6 +47,6 @@ impl PageHeader {
     }
 
     fn is_interior(&self) -> bool {
-        self.page_type == 2 || self.page_type == 5
+        matches!(self.page_type, PageType::Interior)
     }
 }

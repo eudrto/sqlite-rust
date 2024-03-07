@@ -1,7 +1,10 @@
 use std::fmt::Debug;
 
-use super::{page_header::PageHeader, record::parse_record};
-use crate::engine::Record;
+use super::{
+    page_header::{PageHeader, PageType},
+    record::parse_record,
+};
+use crate::{bytes::from_be_bytes::from_be_bytes, engine::Record};
 
 pub struct Page {
     pub page_header: PageHeader,
@@ -27,7 +30,25 @@ impl Page {
         }
     }
 
+    pub fn get_children(&self) -> Vec<u32> {
+        if !matches!(self.page_header.page_type, PageType::Interior) {
+            panic!("internal error")
+        }
+
+        self.cell_ptr_arr
+            .iter()
+            .map(|cell_ptr| {
+                let cell_ptr = *cell_ptr as usize;
+                from_be_bytes(&mut &self.bytes[cell_ptr..cell_ptr + 4])
+            })
+            .collect()
+    }
+
     pub fn get_records(&self) -> Vec<Record> {
+        if !matches!(self.page_header.page_type, PageType::Leaf) {
+            panic!("internal error")
+        }
+
         self.cell_ptr_arr
             .iter()
             .map(|cell_ptr| {
