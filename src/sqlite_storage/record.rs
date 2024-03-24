@@ -34,7 +34,7 @@ pub fn parse_record(mut bytes: &[u8]) -> Record {
     }
 
     let offset = payload_start.offset(window);
-    debug_assert_eq!(offset as u64, payload_size);
+    debug_assert_eq!(offset as i64, payload_size);
 
     Record::new(rowid, values)
 }

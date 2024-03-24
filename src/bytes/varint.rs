@@ -7,13 +7,13 @@ fn clear_high_order_bit(byte: u8) -> u8 {
     byte & mask
 }
 
-fn add(num: u64, byte: u8) -> u64 {
+fn add(num: i64, byte: u8) -> i64 {
     let cleared = clear_high_order_bit(byte);
-    (num << 7) | cleared as u64
+    (num << 7) | cleared as i64
 }
 
-pub fn parse_varint(encoded: &mut &[u8]) -> u64 {
-    let mut decoded: u64 = 0;
+pub fn parse_varint(encoded: &mut &[u8]) -> i64 {
+    let mut decoded: i64 = 0;
 
     for _ in 0..9 {
         if encoded.len() == 0 {
@@ -33,7 +33,7 @@ pub fn parse_varint(encoded: &mut &[u8]) -> u64 {
     return decoded;
 }
 
-pub fn parse_varints(window: &[u8]) -> Vec<u64> {
+pub fn parse_varints(window: &[u8]) -> Vec<i64> {
     let mut window = window;
     let window = &mut window;
 

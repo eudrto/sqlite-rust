@@ -1,6 +1,6 @@
 use crate::engine::Value;
 
-pub fn parse_integer(serial_type: u64, window: &mut &[u8]) -> Value {
+pub fn parse_integer(serial_type: i64, window: &mut &[u8]) -> Value {
     let size = match serial_type {
         5 => 6,
         6 => 8,
@@ -22,7 +22,7 @@ pub fn parse_real(window: &mut &[u8]) -> Value {
     Value::Real(f64::from_be_bytes(float))
 }
 
-pub fn parse_text_or_blob(serial_type: u64, window: &mut &[u8]) -> Value {
+pub fn parse_text_or_blob(serial_type: i64, window: &mut &[u8]) -> Value {
     let subtrahend = if serial_type % 2 == 0 { 12 } else { 13 };
     let length = (serial_type - subtrahend) / 2;
     let value = &window[..length as usize];
