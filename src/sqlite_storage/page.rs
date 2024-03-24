@@ -1,10 +1,10 @@
 use std::fmt::Debug;
 
 use super::{
-    cell::TableLeafCell,
+    cell::{TableInteriorCell, TableLeafCell},
     page_header::{PageHeader, PageType},
 };
-use crate::{bytes::from_be_bytes::from_be_bytes, engine::Record};
+use crate::engine::Record;
 
 pub struct Page {
     pub page_header: PageHeader,
@@ -38,8 +38,9 @@ impl Page {
         self.cell_ptr_arr
             .iter()
             .map(|cell_ptr| {
-                let cell_ptr = *cell_ptr as usize;
-                from_be_bytes(&mut &self.bytes[cell_ptr..cell_ptr + 4])
+                let bytes = &self.bytes[*cell_ptr as usize..];
+                let cell = TableInteriorCell::parse(bytes);
+                cell.left_child_ptr
             })
             .collect()
     }

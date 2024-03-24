@@ -1,4 +1,7 @@
-use crate::{bytes::varint::parse_varint, engine::Record};
+use crate::{
+    bytes::{from_be_bytes::from_be_bytes, varint::parse_varint},
+    engine::Record,
+};
 
 use super::record::parse_record;
 
@@ -24,5 +27,23 @@ impl<'a> TableLeafCell<'a> {
     pub fn parse_record(&self) -> Record {
         let values = parse_record(self.payload);
         Record::new(self.rowid, values)
+    }
+}
+
+#[derive(Debug)]
+pub struct TableInteriorCell {
+    pub left_child_ptr: u32,
+    pub key: i64,
+}
+
+impl TableInteriorCell {
+    pub fn parse(bytes: &[u8]) -> Self {
+        let left_child_ptr = from_be_bytes(&mut &bytes[..4]);
+        let key = parse_varint(&mut &bytes[4..]);
+
+        Self {
+            left_child_ptr,
+            key,
+        }
     }
 }
