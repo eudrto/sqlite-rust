@@ -1,5 +1,5 @@
-use super::page_header::PageType;
-use super::{db_header::DBHeader, page::Page};
+use super::db_header::DBHeader;
+use super::page::{Page, TablePage};
 use crate::engine::{DBInfo, Record, SQLiteSchema, Storage};
 use crate::sqlite_file::SQLiteFile;
 
@@ -19,19 +19,18 @@ impl SQLiteStorage {
 
     fn get_page(&mut self, page_no: u32) -> Page {
         let page_size = self.get_db_header().page_size as usize;
-        let page = self.sqlite_file.load_page(page_no, page_size);
-        Page::parse(page, page_no)
+        let bytes = self.sqlite_file.load_page(page_no, page_size);
+        Page::parse(bytes, page_no)
     }
 
     fn traverse(&mut self, page_no: u32) -> Vec<Record> {
-        let page = self.get_page(page_no);
+        let Page::Table(page) = self.get_page(page_no);
 
-        match page.page_header.page_type {
-            PageType::Leaf => page.get_records(),
-            PageType::Interior => page
+        match page {
+            TablePage::Leaf(page) => page.get_records(),
+            TablePage::Interior(page) => page
                 .get_children()
                 .into_iter()
-                .chain([page.page_header.right_most_ptr.unwrap()])
                 .map(|page_no| self.traverse(page_no))
                 .flatten()
                 .collect(),
@@ -48,7 +47,7 @@ impl Storage for SQLiteStorage {
     }
 
     fn get_schema(&mut self) -> SQLiteSchema {
-        let records = self.get_page(1).get_records();
+        let records = self.traverse(1);
         let sqlite_objects = records.into_iter().map(|r| r.into()).collect();
         SQLiteSchema::new(sqlite_objects)
     }

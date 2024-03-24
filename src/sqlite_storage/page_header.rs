@@ -4,15 +4,19 @@ use crate::bytes::from_be_bytes::from_be_bytes;
 
 #[derive(Debug)]
 pub enum PageType {
-    Interior,
-    Leaf,
+    TableInterior,
+    TableLeaf,
+    IndexInterior,
+    IndexLeaf,
 }
 
 impl PageType {
     fn new(flag: u8) -> PageType {
         match flag {
-            5 => PageType::Interior,
-            13 => PageType::Leaf,
+            2 => PageType::IndexInterior,
+            5 => PageType::TableInterior,
+            10 => PageType::IndexLeaf,
+            13 => PageType::TableLeaf,
             _ => panic!("internal error: page type: {}", flag),
         }
     }
@@ -47,6 +51,7 @@ impl PageHeader {
     }
 
     fn is_interior(&self) -> bool {
-        matches!(self.page_type, PageType::Interior)
+        matches!(self.page_type, PageType::TableInterior)
+            || matches!(self.page_type, PageType::IndexInterior)
     }
 }
