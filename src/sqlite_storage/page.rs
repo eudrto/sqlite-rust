@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use super::{
+    cell::TableLeafCell,
     page_header::{PageHeader, PageType},
-    record::parse_record,
 };
 use crate::{bytes::from_be_bytes::from_be_bytes, engine::Record};
 
@@ -53,7 +53,9 @@ impl Page {
             .iter()
             .map(|cell_ptr| {
                 let bytes = &self.bytes[*cell_ptr as usize..];
-                parse_record(bytes)
+                let cell = TableLeafCell::parse(bytes);
+                let record = cell.parse_record();
+                record
             })
             .collect()
     }

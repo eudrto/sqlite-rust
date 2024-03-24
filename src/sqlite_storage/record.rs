@@ -2,15 +2,10 @@ use nom::Offset;
 
 use super::value::{parse_integer, parse_real, parse_text_or_blob};
 use crate::bytes::varint::{parse_varint, parse_varints};
-use crate::engine::{Record, Value};
+use crate::engine::Value;
 
-pub fn parse_record(mut bytes: &[u8]) -> Record {
+pub fn parse_record(mut bytes: &[u8]) -> Vec<Value> {
     let window = &mut bytes;
-
-    // Table B-Tree Leaf Cell
-    let payload_size = parse_varint(window);
-    let rowid = parse_varint(window) as i64;
-
     let payload_start = *window;
 
     // Header
@@ -33,8 +28,5 @@ pub fn parse_record(mut bytes: &[u8]) -> Record {
         });
     }
 
-    let offset = payload_start.offset(window);
-    debug_assert_eq!(offset as i64, payload_size);
-
-    Record::new(rowid, values)
+    values
 }
