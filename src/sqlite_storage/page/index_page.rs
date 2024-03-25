@@ -1,10 +1,11 @@
-#![allow(unused)]
-
 use std::cmp::Ordering;
 
-use crate::engine::Value;
+use crate::{
+    engine::Value,
+    sqlite_storage::cell::{IndexInteriorCell, IndexLeafCell},
+};
 
-use super::{super::cell::IndexLeafCell, RawPage};
+use super::raw_page::RawPage;
 
 #[derive(Debug)]
 pub struct IndexLeafPage {
@@ -33,6 +34,47 @@ impl IndexLeafPage {
                 .collect()
         };
         records
+    }
+}
+
+#[derive(Debug)]
+pub struct IndexInteriorPage {
+    raw_page: RawPage,
+}
+
+impl IndexInteriorPage {
+    pub fn new(raw_page: RawPage) -> Self {
+        Self { raw_page }
+    }
+
+    pub fn get_children(&self, value: &Value) -> (Vec<u32>, Vec<i64>) {
+        let cells: Vec<_> = self.raw_page.get_cells::<IndexInteriorCell>().collect();
+        let values: Vec<_> = cells.iter().map(|cell| cell.parse_record()).collect();
+
+        let keys: Vec<_> = values.iter().map(|value| &value[0]).collect();
+        let indices = binary_search_range(&keys, &value);
+
+        let mut ptrs = cells.iter().map(|cell| cell.left_child_ptr).chain([self
+            .raw_page
+            .page_header
+            .right_most_ptr
+            .unwrap()]);
+
+        match indices {
+            Ok((start, end)) => {
+                let ptrs = ptrs.skip(start).take(end - start + 1).collect();
+
+                let rowids = values
+                    .into_iter()
+                    .skip(start)
+                    .take(end - start)
+                    .map(|values| i64::from(&values[1]))
+                    .collect();
+
+                (ptrs, rowids)
+            }
+            Err(idx) => (vec![ptrs.nth(idx).unwrap()], vec![]),
+        }
     }
 }
 

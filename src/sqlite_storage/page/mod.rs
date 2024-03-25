@@ -1,5 +1,5 @@
 use self::{
-    index_page::IndexLeafPage,
+    index_page::{IndexInteriorPage, IndexLeafPage},
     page_header::PageType,
     raw_page::RawPage,
     table_page::{TableInteriorPage, TableLeafPage},
@@ -26,7 +26,9 @@ impl Page {
                 Page::Table(TablePage::Interior(TableInteriorPage::new(page)))
             }
             PageType::IndexLeaf => Page::Index(IndexPage::Leaf(IndexLeafPage::new(page))),
-            _ => unimplemented!(),
+            PageType::IndexInterior => {
+                Page::Index(IndexPage::Interior(IndexInteriorPage::new(page)))
+            }
         }
     }
 }
@@ -40,4 +42,5 @@ pub enum TablePage {
 #[derive(Debug)]
 pub enum IndexPage {
     Leaf(IndexLeafPage),
+    Interior(IndexInteriorPage),
 }

@@ -48,6 +48,17 @@ impl SQLiteStorage {
 
         match page {
             IndexPage::Leaf(page) => page.get_rowids(value),
+            IndexPage::Interior(page) => {
+                let (ptrs, rowids) = page.get_children(value);
+
+                let mut results: Vec<i64> = vec![];
+                for i in 0..rowids.len() {
+                    results.extend(self.search_index(ptrs[i], value));
+                    results.push(rowids[i])
+                }
+                results.extend(self.search_index(*ptrs.last().unwrap(), value));
+                results
+            }
         }
     }
 }
@@ -82,6 +93,8 @@ impl Storage for SQLiteStorage {
 #[cfg(test)]
 mod tests {
     use std::{fs::File, path::PathBuf};
+
+    use itertools::Itertools;
 
     use crate::{
         engine::{Storage, Value},
@@ -167,5 +180,24 @@ mod tests {
         let value = Value::Text("France".to_string());
         let rowids = sqlite_storage.search_index(rootpage, &value);
         assert_eq!(rowids.len(), 2);
+    }
+
+    #[test]
+    fn search_index_companies() {
+        let mut sqlite_storage = construct_sqlite_storage("companies.db");
+
+        let rootpage = get_rootpage(&mut sqlite_storage, "idx_companies_country");
+
+        let value = Value::Text("myanmar".to_string());
+        let rowids = sqlite_storage.search_index(rootpage, &value);
+
+        let want_len = 799;
+        assert_eq!(rowids.len(), want_len);
+
+        let sorted_rowids: Vec<_> = rowids.iter().sorted().cloned().collect();
+        assert_eq!(rowids, sorted_rowids);
+
+        let unique_rowids: Vec<_> = rowids.iter().unique().collect();
+        assert_eq!(unique_rowids.len(), want_len);
     }
 }

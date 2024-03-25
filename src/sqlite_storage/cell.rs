@@ -66,3 +66,27 @@ impl<'a> IndexLeafCell<'a> {
         parse_record(self.payload)
     }
 }
+
+#[derive(Debug)]
+pub struct IndexInteriorCell<'a> {
+    pub left_child_ptr: u32,
+    payload: &'a [u8],
+}
+
+impl<'a> IndexInteriorCell<'a> {
+    pub fn parse(mut bytes: &'a [u8]) -> Self {
+        let window = &mut bytes;
+
+        let left_child_ptr = from_be_bytes(window);
+        let _payload_size = parse_varint(window);
+
+        Self {
+            left_child_ptr,
+            payload: window,
+        }
+    }
+
+    pub fn parse_record(&self) -> Vec<Value> {
+        parse_record(self.payload)
+    }
+}

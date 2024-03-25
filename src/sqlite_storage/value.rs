@@ -9,7 +9,7 @@ pub fn parse_integer(serial_type: i64, window: &mut &[u8]) -> Value {
 
     let mut arr = [0; 8];
     for (i, byte) in window[..size].iter().enumerate() {
-        arr[arr.len() - 1 - i] = *byte;
+        arr[arr.len() - size + i] = *byte;
     }
 
     *window = &window[size..];
@@ -33,5 +33,19 @@ pub fn parse_text_or_blob(serial_type: i64, window: &mut &[u8]) -> Value {
         // TODO Use the `text_encoding` field of `DBHeader`
         13 => Value::Text(String::from_utf8(Vec::from(value)).unwrap()),
         _ => panic!(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::engine::Value;
+
+    use super::parse_integer;
+
+    #[test]
+    fn parse_integer_ok() {
+        let bytes = [20, 86, 235];
+        let res = parse_integer(3, &mut &bytes[..]);
+        assert_eq!(res, Value::Integer(1332971));
     }
 }
