@@ -1,9 +1,11 @@
 use self::{
+    index_page::IndexLeafPage,
     page_header::PageType,
     raw_page::RawPage,
     table_page::{TableInteriorPage, TableLeafPage},
 };
 
+mod index_page;
 mod page_header;
 mod raw_page;
 mod table_page;
@@ -11,6 +13,7 @@ mod table_page;
 #[derive(Debug)]
 pub enum Page {
     Table(TablePage),
+    Index(IndexPage),
 }
 
 impl Page {
@@ -22,6 +25,7 @@ impl Page {
             PageType::TableInterior => {
                 Page::Table(TablePage::Interior(TableInteriorPage::new(page)))
             }
+            PageType::IndexLeaf => Page::Index(IndexPage::Leaf(IndexLeafPage::new(page))),
             _ => unimplemented!(),
         }
     }
@@ -31,4 +35,9 @@ impl Page {
 pub enum TablePage {
     Leaf(TableLeafPage),
     Interior(TableInteriorPage),
+}
+
+#[derive(Debug)]
+pub enum IndexPage {
+    Leaf(IndexLeafPage),
 }

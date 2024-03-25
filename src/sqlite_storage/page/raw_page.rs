@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::sqlite_storage::cell::{TableInteriorCell, TableLeafCell};
+use crate::sqlite_storage::cell::{IndexLeafCell, TableInteriorCell, TableLeafCell};
 
 use super::page_header::PageHeader;
 
@@ -58,6 +58,12 @@ impl<'a> Cell<'a> for TableLeafCell<'a> {
 
 impl Cell<'_> for TableInteriorCell {
     fn parse(bytes: &[u8]) -> Self {
+        Self::parse(bytes)
+    }
+}
+
+impl<'a> Cell<'a> for IndexLeafCell<'a> {
+    fn parse(bytes: &'a [u8]) -> Self {
         Self::parse(bytes)
     }
 }

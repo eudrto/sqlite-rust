@@ -1,6 +1,8 @@
+#![allow(unused)]
+
 use super::db_header::DBHeader;
-use super::page::{Page, TablePage};
-use crate::engine::{DBInfo, Record, SQLiteSchema, Storage};
+use super::page::{IndexPage, Page, TablePage};
+use crate::engine::{DBInfo, Record, SQLiteSchema, Storage, Value};
 use crate::sqlite_file::SQLiteFile;
 
 #[derive(Debug)]
@@ -24,7 +26,9 @@ impl SQLiteStorage {
     }
 
     fn traverse(&mut self, page_no: u32) -> Vec<Record> {
-        let Page::Table(page) = self.get_page(page_no);
+        let Page::Table(page) = self.get_page(page_no) else {
+            panic!("internal error");
+        };
 
         match page {
             TablePage::Leaf(page) => page.get_records(),
@@ -34,6 +38,16 @@ impl SQLiteStorage {
                 .map(|page_no| self.traverse(page_no))
                 .flatten()
                 .collect(),
+        }
+    }
+
+    fn search_index(&mut self, page_no: u32, value: &Value) -> Vec<i64> {
+        let Page::Index(page) = self.get_page(page_no) else {
+            panic!("internal error");
+        };
+
+        match page {
+            IndexPage::Leaf(page) => page.get_rowids(value),
         }
     }
 }
@@ -69,7 +83,10 @@ impl Storage for SQLiteStorage {
 mod tests {
     use std::{fs::File, path::PathBuf};
 
-    use crate::{engine::Storage, sqlite_file::SQLiteFile};
+    use crate::{
+        engine::{Storage, Value},
+        sqlite_file::SQLiteFile,
+    };
 
     use super::SQLiteStorage;
 
@@ -78,6 +95,12 @@ mod tests {
         let file = File::open(root.join(db_file_rel_path)).unwrap();
         let sqlite_file = SQLiteFile::new(file);
         SQLiteStorage::new(sqlite_file)
+    }
+
+    fn get_rootpage(sqlite_storage: &mut SQLiteStorage, table_name: &str) -> u32 {
+        let sqlite_schema = sqlite_storage.get_schema();
+        let sqlite_object = sqlite_schema.get_sqlite_object(table_name).unwrap();
+        sqlite_object.rootpage
     }
 
     #[test]
@@ -133,5 +156,16 @@ mod tests {
     fn get_tables_err() {
         let mut sqlite_storage = construct_sqlite_storage("sample.db");
         assert!(matches!(sqlite_storage.get_table("grapes"), Err(_)));
+    }
+
+    #[test]
+    fn search_index_mountains() {
+        let mut sqlite_storage = construct_sqlite_storage("dbs/mountains.db");
+
+        let rootpage = get_rootpage(&mut sqlite_storage, "idx_mountains_country");
+
+        let value = Value::Text("France".to_string());
+        let rowids = sqlite_storage.search_index(rootpage, &value);
+        assert_eq!(rowids.len(), 2);
     }
 }

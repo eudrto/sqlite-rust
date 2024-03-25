@@ -27,6 +27,15 @@ impl From<&Value> for bool {
     }
 }
 
+impl From<&Value> for i64 {
+    fn from(value: &Value) -> Self {
+        match value {
+            Value::Integer(integer) => *integer,
+            _ => panic!(),
+        }
+    }
+}
+
 impl Value {
     pub fn or(&self, rhs: &Value) -> Value {
         Value::from(self.into() || rhs.into())
