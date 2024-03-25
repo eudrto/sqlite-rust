@@ -24,27 +24,6 @@ impl SQLiteStorage {
         let bytes = self.sqlite_file.load_page(page_no, page_size);
         Page::parse(bytes, page_no)
     }
-
-    fn search_index(&mut self, page_no: u32, value: &Value) -> Vec<i64> {
-        let Page::Index(page) = self.get_page(page_no) else {
-            panic!("internal error");
-        };
-
-        match page {
-            IndexPage::Leaf(page) => page.get_rowids(value),
-            IndexPage::Interior(page) => {
-                let (ptrs, rowids) = page.get_children(value);
-
-                let mut results: Vec<i64> = vec![];
-                for i in 0..rowids.len() {
-                    results.extend(self.search_index(ptrs[i], value));
-                    results.push(rowids[i])
-                }
-                results.extend(self.search_index(*ptrs.last().unwrap(), value));
-                results
-            }
-        }
-    }
 }
 
 impl Storage for SQLiteStorage {
@@ -74,6 +53,27 @@ impl Storage for SQLiteStorage {
                 .map(|(ptr, rowids)| self.search_table(ptr, rowids))
                 .flatten()
                 .collect(),
+        }
+    }
+
+    fn search_index(&mut self, page_no: u32, value: &Value) -> Vec<i64> {
+        let Page::Index(page) = self.get_page(page_no) else {
+            panic!("internal error");
+        };
+
+        match page {
+            IndexPage::Leaf(page) => page.get_rowids(value),
+            IndexPage::Interior(page) => {
+                let (ptrs, rowids) = page.get_children(value);
+
+                let mut results: Vec<i64> = vec![];
+                for i in 0..rowids.len() {
+                    results.extend(self.search_index(ptrs[i], value));
+                    results.push(rowids[i])
+                }
+                results.extend(self.search_index(*ptrs.last().unwrap(), value));
+                results
+            }
         }
     }
 }

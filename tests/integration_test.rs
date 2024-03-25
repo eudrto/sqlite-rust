@@ -56,6 +56,10 @@ impl Storage for MockStorage {
             })
             .collect()
     }
+
+    fn search_index(&mut self, _rootpage: u32, _value: &Value) -> Vec<i64> {
+        unimplemented!()
+    }
 }
 
 #[test]

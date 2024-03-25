@@ -27,6 +27,7 @@ pub trait Storage {
     fn get_dbinfo(&mut self) -> DBInfo;
     fn get_schema(&mut self) -> SQLiteSchema;
     fn search_table(&mut self, page_no: u32, rowids: Option<&[i64]>) -> Vec<Record>;
+    fn search_index(&mut self, page_no: u32, value: &Value) -> Vec<i64>;
 }
 
 pub fn new_engine(file_path: &str) -> Engine<SQLiteStorage> {
