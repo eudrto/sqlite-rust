@@ -1,5 +1,6 @@
 mod dbinfo;
 mod engine;
+mod index;
 mod interpreter;
 mod record;
 mod row;

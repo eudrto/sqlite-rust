@@ -1,5 +1,6 @@
 use super::{
     ast::SelectStmt,
+    sql::CreateIndexStmt,
     {BinOp, Expr, Literal},
 };
 
@@ -10,6 +11,10 @@ parser! {
         // --------------------
         // lexical grammar
         // --------------------
+
+        // case insensitive
+        rule i(literal: &'static str)
+            = input:$([_]*<{literal.len()}>) {? if input.eq_ignore_ascii_case(literal) { Ok(()) } else { Err(literal) } }
 
         // whitespace
         rule _ = [' ' | '\n' | '\t']*
@@ -50,9 +55,14 @@ parser! {
             = _ i:$(alpha_() alphanum_()*) { Literal::Id(i.into()) }
 
         // keyword
-        rule kw_select() = _ ("select" / "SELECT")
-        rule kw_from() = _ ("from" / "FROM")
-        rule kw_where() = _ ("where" / "WHERE")
+        rule kw_create() = _ i("create")
+        rule kw_from() = _ i("from")
+        rule kw_index() = _ i("index")
+        rule kw_on() = _ i("on")
+        rule kw_select() = _ i("select")
+        rule kw_table() = _ i("table")
+        rule kw_unique() = _ i("unique")
+        rule kw_where() = _ i("where")
 
         // --------------------
         // syntacitc grammar
@@ -97,6 +107,21 @@ parser! {
 
         pub rule select_stmt() -> SelectStmt
             = s:select_clause() f:from_clause() w:where_clause()? tok_semi()? _ { SelectStmt::new_select(s, f, w) }
+
+        pub rule create_index_stmt() -> CreateIndexStmt<'input>
+            = kw_create() kw_unique()? kw_index()
+            tok_id() kw_on() table_name:$tok_id()
+            tok_left_paren() indexed_columns:($tok_id() ++ tok_comma()) tok_right_paren()
+            tok_semi()? _
+            {
+                CreateIndexStmt {
+                    table_name: table_name.trim(),
+                    indexed_columns: indexed_columns
+                        .into_iter()
+                        .map(|indexed_column| indexed_column.trim())
+                        .collect(),
+                }
+            }
     }
 }
 
@@ -105,16 +130,20 @@ pub fn parse_expr(sql: &str) -> Expr {
     parser::expr(sql).expect("syntax error")
 }
 
-pub fn parse_stmt(sql: &str) -> SelectStmt {
+pub fn parse_select_stmt(sql: &str) -> SelectStmt {
     parser::select_stmt(sql).expect("syntax error")
+}
+
+pub fn parse_create_index_stmt(sql: &str) -> CreateIndexStmt {
+    parser::create_index_stmt(sql).expect("syntax error")
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::sql::parser::parse_stmt;
+    use crate::sql::parser::parse_select_stmt;
 
     use super::super::ast::{BinOp, Expr, Literal};
-    use super::parse_expr;
+    use super::{parse_create_index_stmt, parse_expr};
 
     #[test]
     fn parser_pass_1() {
@@ -267,7 +296,7 @@ mod tests {
         let sql = "SELECT COUNT(*)
         FROM apples";
 
-        let stmt = parse_stmt(sql);
+        let stmt = parse_select_stmt(sql);
 
         assert!(stmt.select_clause.len() == 0);
         assert_eq!(stmt.from_clause, "apples");
@@ -278,7 +307,7 @@ mod tests {
         let sql = "SELECT COUNT(*)
         FROM apples;";
 
-        let stmt = parse_stmt(sql);
+        let stmt = parse_select_stmt(sql);
 
         assert!(stmt.select_clause.len() == 0);
         assert_eq!(stmt.from_clause, "apples");
@@ -289,7 +318,7 @@ mod tests {
         let sql = "SELECT name, color
         FROM apples";
 
-        let stmt = parse_stmt(sql);
+        let stmt = parse_select_stmt(sql);
 
         assert_eq!(
             &stmt.select_clause,
@@ -306,7 +335,7 @@ mod tests {
     fn select_stmt_where() {
         let sql = "SELECT name, color FROM apples WHERE color = 'Yellow'";
 
-        let stmt = parse_stmt(sql);
+        let stmt = parse_select_stmt(sql);
 
         assert_eq!(
             &stmt.select_clause,
@@ -324,5 +353,15 @@ mod tests {
         );
 
         assert_eq!(stmt.where_clause.unwrap(), where_want);
+    }
+
+    #[test]
+    fn create_index_stmt() {
+        let sql = "CREATE INDEX idx_companies_country on companies (country)";
+
+        let create_index_stmt = parse_create_index_stmt(sql);
+
+        assert_eq!(create_index_stmt.table_name, "companies");
+        assert_eq!(create_index_stmt.indexed_columns, ["country"]);
     }
 }

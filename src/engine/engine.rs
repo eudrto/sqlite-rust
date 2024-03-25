@@ -1,6 +1,8 @@
-use crate::sql::{parse_stmt, Expr};
+use crate::sql::{parse_select_stmt, Expr};
 
-use super::{DBInfo, Record, Row, Storage, Table, TableHeader, Value};
+use super::{
+    index::deconstruct_simple_eq, DBInfo, Record, Row, Storage, Table, TableHeader, Value,
+};
 
 #[derive(Debug)]
 pub struct Engine<S: Storage> {
@@ -44,7 +46,7 @@ impl<S: Storage> Engine<S> {
     }
 
     pub fn exec_sql(&mut self, sql: &str) -> Result<Table, String> {
-        let stmt = parse_stmt(sql);
+        let stmt = parse_select_stmt(sql);
         let table = self.load_table(&stmt.from_clause, stmt.where_clause)?;
 
         if stmt.select_clause.len() == 0 {
@@ -83,16 +85,27 @@ impl<S: Storage> Engine<S> {
         }
     }
 
-    fn load_table(&mut self, name: &str, where_expr: Option<Expr>) -> Result<Table, String> {
+    fn load_table(&mut self, table_name: &str, where_expr: Option<Expr>) -> Result<Table, String> {
         let sqlite_schema = self.storage.get_schema();
-        let Some(sqlite_object) = sqlite_schema.get_sqlite_object(name) else {
+        let Some(sqlite_object_table) = sqlite_schema.get_sqlite_object(table_name) else {
             return Err(String::from("table not found"));
         };
-        let rootpage = sqlite_object.rootpage;
+        let table_rootpage = sqlite_object_table.rootpage;
 
-        let mut records = self.storage.search_table(rootpage, None);
+        let mut rowids = None;
+        if let Some(where_expr) = &where_expr {
+            if let Some((indexed_column, value)) = deconstruct_simple_eq(&where_expr) {
+                let sqlite_object_index = sqlite_schema.find_index(table_name, indexed_column);
+                if let Some(sqlite_object_index) = sqlite_object_index {
+                    let index_rootpage = sqlite_object_index.rootpage;
+                    rowids = Some(self.storage.search_index(index_rootpage, &value));
+                }
+            }
+        };
 
-        let column_defs = sqlite_object.get_column_defs();
+        let mut records = self.storage.search_table(table_rootpage, rowids.as_deref());
+
+        let column_defs = sqlite_object_table.get_column_defs();
 
         // Handle NULL value in INTEGER PRIMARY KEY (rowid) column:
         // "When an SQL table includes an INTEGER PRIMARY KEY column (which aliases the rowid)
@@ -114,7 +127,7 @@ impl<S: Storage> Engine<S> {
             }
         }
 
-        let table_header = TableHeader::new(&sqlite_object.get_column_names());
+        let table_header = TableHeader::new(&sqlite_object_table.get_column_names());
 
         if let Some(where_expr) = where_expr {
             records = records

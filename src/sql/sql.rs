@@ -36,6 +36,12 @@ impl<'a> CreateTableStmt<'a> {
     }
 }
 
+#[derive(Debug)]
+pub struct CreateIndexStmt<'a> {
+    pub table_name: &'a str,
+    pub indexed_columns: Vec<&'a str>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::CreateTableStmt;

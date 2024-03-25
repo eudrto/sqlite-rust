@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use super::db_header::DBHeader;
 use super::page::{IndexPage, Page, TablePage};
 use crate::engine::{DBInfo, Record, SQLiteSchema, Storage, Value};
@@ -190,10 +188,10 @@ mod tests {
 
         let index_rootpage = get_rootpage(&mut sqlite_storage, "idx_mountains_country");
         let value = Value::Text("France".to_string());
-        let mut rowids = sqlite_storage.search_index(index_rootpage, &value);
+        let rowids = sqlite_storage.search_index(index_rootpage, &value);
 
         let table_rootpage = get_rootpage(&mut sqlite_storage, "mountains");
-        let records = sqlite_storage.search_table(2, Some(&rowids));
+        let records = sqlite_storage.search_table(table_rootpage, Some(&rowids));
 
         assert_eq!(records.len(), 2);
         for record in &records {
@@ -207,7 +205,7 @@ mod tests {
 
         let index_rootpage = get_rootpage(&mut sqlite_storage, "idx_companies_country");
         let value = Value::Text("myanmar".to_string());
-        let mut rowids = sqlite_storage.search_index(index_rootpage, &value);
+        let rowids = sqlite_storage.search_index(index_rootpage, &value);
 
         let table_rootpage = get_rootpage(&mut sqlite_storage, "companies");
         let records = sqlite_storage.search_table(table_rootpage, Some(&rowids));
@@ -224,7 +222,7 @@ mod tests {
 
         let index_rootpage = get_rootpage(&mut sqlite_storage, "idx_companies_country");
         let value = Value::Text("eritrea".to_string());
-        let mut rowids = sqlite_storage.search_index(index_rootpage, &value);
+        let rowids = sqlite_storage.search_index(index_rootpage, &value);
 
         let table_rootpage = get_rootpage(&mut sqlite_storage, "companies");
         let records = sqlite_storage.search_table(table_rootpage, Some(&rowids));

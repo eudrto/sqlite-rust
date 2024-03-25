@@ -32,6 +32,14 @@ impl SQLiteObject {
         }
     }
 
+    pub fn is_table(&self) -> bool {
+        return matches!(self.object_type, SQLiteObjectType::Table);
+    }
+
+    pub fn is_index(&self) -> bool {
+        return matches!(self.object_type, SQLiteObjectType::Index);
+    }
+
     pub fn get_column_defs(&self) -> Vec<ColumnDef> {
         let stmt = CreateTableStmt::parse(&self.sql);
         stmt.column_defs
