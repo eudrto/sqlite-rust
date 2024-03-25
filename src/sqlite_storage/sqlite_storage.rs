@@ -26,16 +26,20 @@ impl SQLiteStorage {
     }
 
     fn traverse(&mut self, page_no: u32) -> Vec<Record> {
+        self.search_table(page_no, None)
+    }
+
+    fn search_table(&mut self, page_no: u32, rowids: Option<&[i64]>) -> Vec<Record> {
         let Page::Table(page) = self.get_page(page_no) else {
             panic!("internal error");
         };
 
         match page {
-            TablePage::Leaf(page) => page.get_records(),
+            TablePage::Leaf(page) => page.get_records(rowids),
             TablePage::Interior(page) => page
-                .get_children()
+                .get_buckets(rowids)
                 .into_iter()
-                .map(|page_no| self.traverse(page_no))
+                .map(|(ptr, rowids)| self.search_table(ptr, rowids))
                 .flatten()
                 .collect(),
         }
@@ -199,5 +203,56 @@ mod tests {
 
         let unique_rowids: Vec<_> = rowids.iter().unique().collect();
         assert_eq!(unique_rowids.len(), want_len);
+    }
+
+    #[test]
+    fn search_table_mountains() {
+        let mut sqlite_storage = construct_sqlite_storage("dbs/mountains.db");
+
+        let index_rootpage = get_rootpage(&mut sqlite_storage, "idx_mountains_country");
+        let value = Value::Text("France".to_string());
+        let mut rowids = sqlite_storage.search_index(index_rootpage, &value);
+
+        let table_rootpage = get_rootpage(&mut sqlite_storage, "mountains");
+        let records = sqlite_storage.search_table(2, Some(&rowids));
+
+        assert_eq!(records.len(), 2);
+        for record in &records {
+            assert_eq!(record.values[3].to_string(), "France");
+        }
+    }
+
+    #[test]
+    fn search_table_companies_myanmar() {
+        let mut sqlite_storage = construct_sqlite_storage("companies.db");
+
+        let index_rootpage = get_rootpage(&mut sqlite_storage, "idx_companies_country");
+        let value = Value::Text("myanmar".to_string());
+        let mut rowids = sqlite_storage.search_index(index_rootpage, &value);
+
+        let table_rootpage = get_rootpage(&mut sqlite_storage, "companies");
+        let records = sqlite_storage.search_table(table_rootpage, Some(&rowids));
+
+        assert_eq!(records.len(), 799);
+        for record in &records {
+            assert_eq!(record.values[7].to_string(), "myanmar");
+        }
+    }
+
+    #[test]
+    fn search_table_companies_eritrea() {
+        let mut sqlite_storage = construct_sqlite_storage("companies.db");
+
+        let index_rootpage = get_rootpage(&mut sqlite_storage, "idx_companies_country");
+        let value = Value::Text("eritrea".to_string());
+        let mut rowids = sqlite_storage.search_index(index_rootpage, &value);
+
+        let table_rootpage = get_rootpage(&mut sqlite_storage, "companies");
+        let records = sqlite_storage.search_table(table_rootpage, Some(&rowids));
+
+        assert_eq!(records.len(), 4);
+        for record in &records {
+            assert_eq!(record.values[7].to_string(), "eritrea");
+        }
     }
 }
