@@ -25,26 +25,6 @@ impl SQLiteStorage {
         Page::parse(bytes, page_no)
     }
 
-    fn traverse(&mut self, page_no: u32) -> Vec<Record> {
-        self.search_table(page_no, None)
-    }
-
-    fn search_table(&mut self, page_no: u32, rowids: Option<&[i64]>) -> Vec<Record> {
-        let Page::Table(page) = self.get_page(page_no) else {
-            panic!("internal error");
-        };
-
-        match page {
-            TablePage::Leaf(page) => page.get_records(rowids),
-            TablePage::Interior(page) => page
-                .get_buckets(rowids)
-                .into_iter()
-                .map(|(ptr, rowids)| self.search_table(ptr, rowids))
-                .flatten()
-                .collect(),
-        }
-    }
-
     fn search_index(&mut self, page_no: u32, value: &Value) -> Vec<i64> {
         let Page::Index(page) = self.get_page(page_no) else {
             panic!("internal error");
@@ -76,21 +56,25 @@ impl Storage for SQLiteStorage {
     }
 
     fn get_schema(&mut self) -> SQLiteSchema {
-        let records = self.traverse(1);
+        let records = self.search_table(1, None);
         let sqlite_objects = records.into_iter().map(|r| r.into()).collect();
         SQLiteSchema::new(sqlite_objects)
     }
 
-    fn get_table(&mut self, name: &str) -> Result<Vec<Record>, String> {
-        let sqlite_schema = self.get_schema();
-        let sqlite_object = sqlite_schema.get_sqlite_object(name);
-        if sqlite_object.is_none() {
-            return Err(format!("table '{}' not found", name));
-        }
+    fn search_table(&mut self, page_no: u32, rowids: Option<&[i64]>) -> Vec<Record> {
+        let Page::Table(page) = self.get_page(page_no) else {
+            panic!("internal error");
+        };
 
-        let sqlite_object = sqlite_object.unwrap();
-        let records = self.traverse(sqlite_object.rootpage);
-        Ok(records)
+        match page {
+            TablePage::Leaf(page) => page.get_records(rowids),
+            TablePage::Interior(page) => page
+                .get_buckets(rowids)
+                .into_iter()
+                .map(|(ptr, rowids)| self.search_table(ptr, rowids))
+                .flatten()
+                .collect(),
+        }
     }
 }
 
@@ -148,13 +132,15 @@ mod tests {
     fn get_tables_sample_ok() {
         let mut sqlite_storage = construct_sqlite_storage("sample.db");
 
-        let apples = sqlite_storage.get_table("apples").unwrap();
+        let apples_rootpage = get_rootpage(&mut sqlite_storage, "apples");
+        let apples = sqlite_storage.search_table(apples_rootpage, None);
         assert_eq!(apples.len(), 4);
         for record in &apples {
             assert_eq!(record.values.len(), 3);
         }
 
-        let oranges = sqlite_storage.get_table("oranges").unwrap();
+        let oranges_rootpage = get_rootpage(&mut sqlite_storage, "oranges");
+        let oranges = sqlite_storage.search_table(oranges_rootpage, None);
         assert_eq!(oranges.len(), 6);
         for record in &oranges {
             assert_eq!(record.values.len(), 3);
@@ -165,14 +151,9 @@ mod tests {
     fn get_tables_superheroes_ok() {
         let mut sqlite_storage = construct_sqlite_storage("superheroes.db");
 
-        let apples = sqlite_storage.get_table("superheroes").unwrap();
-        assert_eq!(apples.len(), 6895);
-    }
-
-    #[test]
-    fn get_tables_err() {
-        let mut sqlite_storage = construct_sqlite_storage("sample.db");
-        assert!(matches!(sqlite_storage.get_table("grapes"), Err(_)));
+        let rootpage = get_rootpage(&mut sqlite_storage, "superheroes");
+        let superheroes = sqlite_storage.search_table(rootpage, None);
+        assert_eq!(superheroes.len(), 6895);
     }
 
     #[test]
@@ -180,7 +161,6 @@ mod tests {
         let mut sqlite_storage = construct_sqlite_storage("dbs/mountains.db");
 
         let rootpage = get_rootpage(&mut sqlite_storage, "idx_mountains_country");
-
         let value = Value::Text("France".to_string());
         let rowids = sqlite_storage.search_index(rootpage, &value);
         assert_eq!(rowids.len(), 2);
@@ -191,7 +171,6 @@ mod tests {
         let mut sqlite_storage = construct_sqlite_storage("companies.db");
 
         let rootpage = get_rootpage(&mut sqlite_storage, "idx_companies_country");
-
         let value = Value::Text("myanmar".to_string());
         let rowids = sqlite_storage.search_index(rootpage, &value);
 

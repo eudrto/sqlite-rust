@@ -26,7 +26,7 @@ use crate::{sqlite_file::SQLiteFile, sqlite_storage::SQLiteStorage};
 pub trait Storage {
     fn get_dbinfo(&mut self) -> DBInfo;
     fn get_schema(&mut self) -> SQLiteSchema;
-    fn get_table(&mut self, name: &str) -> Result<Vec<Record>, String>;
+    fn search_table(&mut self, page_no: u32, rowids: Option<&[i64]>) -> Vec<Record>;
 }
 
 pub fn new_engine(file_path: &str) -> Engine<SQLiteStorage> {

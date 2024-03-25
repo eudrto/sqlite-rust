@@ -32,7 +32,7 @@ impl Storage for MockStorage {
         )])
     }
 
-    fn get_table(&mut self, _: &str) -> Result<Vec<Record>, String> {
+    fn search_table(&mut self, _rootpage: u32, _rowids: Option<&[i64]>) -> Vec<Record> {
         let table = [
             ("To Kill a Mockingbird", "Harper Lee", "Fiction", 1960),
             ("1984", "George Orwell", "Dystopian", 1949),
@@ -40,7 +40,7 @@ impl Storage for MockStorage {
             ("Pride and Prejudice", "Jane Austen", "Romance", 1813),
         ];
 
-        Ok(table
+        table
             .into_iter()
             .map(|row| {
                 Record::new(
@@ -54,7 +54,7 @@ impl Storage for MockStorage {
                     ],
                 )
             })
-            .collect())
+            .collect()
     }
 }
 

@@ -84,10 +84,14 @@ impl<S: Storage> Engine<S> {
     }
 
     fn load_table(&mut self, name: &str, where_expr: Option<Expr>) -> Result<Table, String> {
-        let mut records = self.storage.get_table(name)?;
-
         let sqlite_schema = self.storage.get_schema();
-        let sqlite_object = sqlite_schema.get_sqlite_object(name).unwrap();
+        let Some(sqlite_object) = sqlite_schema.get_sqlite_object(name) else {
+            return Err(String::from("table not found"));
+        };
+        let rootpage = sqlite_object.rootpage;
+
+        let mut records = self.storage.search_table(rootpage, None);
+
         let column_defs = sqlite_object.get_column_defs();
 
         // Handle NULL value in INTEGER PRIMARY KEY (rowid) column:
@@ -130,6 +134,21 @@ mod tests {
     use std::path::PathBuf;
 
     use crate::engine::new_engine;
+
+    #[test]
+    fn table_not_found() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut engine = new_engine(root.join("sample.db").to_str().unwrap());
+        let sql = "SELECT id, name, country FROM companies WHERE country = 'eritrea'";
+
+        if let Err(msg) = engine.exec_sql(sql) {
+            if msg == "table not found" {
+                return;
+            }
+        }
+
+        panic!();
+    }
 
     #[test]
     fn exec_select() {
@@ -314,6 +333,30 @@ mod tests {
             assert_eq!(record.values.len(), 2);
             assert_eq!(record.values[0].to_string(), want.0.to_string());
             assert_eq!(record.values[1].to_string(), want.1);
+        }
+    }
+
+    #[test]
+    fn exec_select_with_where_pass_5() {
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let mut engine = new_engine(root.join("companies.db").to_str().unwrap());
+        let sql = "SELECT id, name, country FROM companies WHERE country = 'eritrea'";
+
+        let table = engine.exec_sql(sql).unwrap();
+
+        let want = [
+            (121311, "unilink s.c.", "eritrea"),
+            (2102438, "orange asmara it solutions", "eritrea"),
+            (5729848, "zara mining share company", "eritrea"),
+            (6634629, "asmara rental", "eritrea"),
+        ];
+        assert_eq!(table.size(), want.len());
+
+        for (record, want) in table.records.into_iter().zip(want) {
+            assert_eq!(record.values.len(), 3);
+            assert_eq!(record.values[0].to_string(), want.0.to_string());
+            assert_eq!(record.values[1].to_string(), want.1);
+            assert_eq!(record.values[2].to_string(), want.2);
         }
     }
 }
